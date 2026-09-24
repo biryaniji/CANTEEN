@@ -1,0 +1,398 @@
+const http = require('http');
+const path = require('path');
+const express = require('express');
+const cors = require('cors');
+
+const db = require('./db/database');
+const wsService = require('./services/wsService');
+const orderService = require('./services/orderService');
+const stockService = require('./services/stockService');
+const ledger = require('./db/ledger');
+
+const app = express();
+app.use(cors());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.static(path.join(__dirname, 'public')));
+
+// ---------------- REST API ROUTES ----------------
+
+// GET /api/vendors
+app.get('/api/vendors', async (req, res) => {
+  try {
+    const vendors = await db.all('SELECT * FROM vendors');
+    res.json({ success: true, vendors });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/items (all or filtered by vendor)
+app.get('/api/items', async (req, res) => {
+  try {
+    const { vendorId } = req.query;
+    let sql = 'SELECT * FROM menu_items';
+    const params = [];
+    if (vendorId) {
+      sql += ' WHERE vendor_id = ?';
+      params.push(vendorId);
+    }
+    sql += ' ORDER BY id ASC';
+    const items = await db.all(sql, params);
+    res.json({ success: true, items });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/vendors/:id/items
+app.get('/api/vendors/:id/items', async (req, res) => {
+  try {
+    const items = await db.all(
+      'SELECT * FROM menu_items WHERE vendor_id = ? ORDER BY id ASC',
+      [req.params.id]
+    );
+    res.json({ success: true, items });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/cart/checkout
+app.post('/api/cart/checkout', async (req, res) => {
+  try {
+    const studentId = req.headers['x-student-id'] || req.body.studentId || 'student_kabir';
+    const studentName = req.body.studentName || 'Kabir Ahuja';
+    const { cartItems, pickupSlot } = req.body;
+
+    if (!cartItems || !cartItems.length) {
+      return res.status(400).json({ success: false, error: 'cartItems is required and must not be empty' });
+    }
+
+    const orders = await orderService.checkoutCart({
+      studentId,
+      studentName,
+      cartItems,
+      pickupSlot: pickupSlot || 'ASAP'
+    });
+
+    res.json({ success: true, orders });
+  } catch (err) {
+    const isConflict = err.message.includes('Insufficient stock');
+    res.status(isConflict ? 409 : 400).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/orders/mine
+app.get('/api/orders/mine', async (req, res) => {
+  try {
+    const studentId = req.headers['x-student-id'] || req.query.studentId || 'student_kabir';
+    const orders = await orderService.getOrdersByStudent(studentId);
+    res.json({ success: true, orders });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/vendors/:id/orders
+app.get('/api/vendors/:id/orders', async (req, res) => {
+  try {
+    const vendorId = req.params.id;
+    const { status } = req.query;
+    const orders = await orderService.getOrdersByVendor(vendorId, status);
+    res.json({ success: true, orders });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// PATCH /api/orders/:id/advance (Vendor-only)
+app.patch('/api/orders/:id/advance', async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    const vendorId = req.headers['x-vendor-id'] || req.body.vendorId;
+    if (!vendorId) {
+      return res.status(400).json({ success: false, error: 'Vendor ID is required in headers (x-vendor-id) or body' });
+    }
+
+    const order = await orderService.advanceOrderStatus({ orderId, vendorId });
+    res.json({ success: true, order });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// PATCH /api/orders/:id/cancel
+app.patch('/api/orders/:id/cancel', async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    const studentId = req.headers['x-student-id'] || req.body.studentId;
+    const vendorId = req.headers['x-vendor-id'] || req.body.vendorId;
+
+    const actorId = vendorId || studentId || 'student_kabir';
+    const actorRole = vendorId ? 'vendor' : 'student';
+
+    const order = await orderService.cancelOrder({ orderId, actorId, actorRole });
+    res.json({ success: true, order });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// PATCH /api/vendors/:id/items/:itemId/stock
+app.patch('/api/vendors/:id/items/:itemId/stock', async (req, res) => {
+  try {
+    const vendorId = req.params.id;
+    const itemId = parseInt(req.params.itemId, 10);
+    const { delta, absolute, eta } = req.body;
+
+    const result = await stockService.updateStockQty({
+      itemId,
+      vendorId,
+      delta,
+      absolute,
+      eta
+    });
+
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/vendors/:id/items/:itemId/refill
+app.post('/api/vendors/:id/items/:itemId/refill', async (req, res) => {
+  try {
+    const vendorId = req.params.id;
+    const itemId = parseInt(req.params.itemId, 10);
+    const result = await stockService.refillItem(itemId, vendorId);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/vendors/:id/items/:itemId/sellout
+app.post('/api/vendors/:id/items/:itemId/sellout', async (req, res) => {
+  try {
+    const vendorId = req.params.id;
+    const itemId = parseInt(req.params.itemId, 10);
+    const eta = req.body.eta !== undefined ? req.body.eta : 15;
+    const result = await stockService.markSoldOut(itemId, vendorId, eta);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/vendors/:id/items (Publish new menu item)
+app.post('/api/vendors/:id/items', async (req, res) => {
+  try {
+    const vendorId = req.params.id;
+    const { name, price, stock, category, emoji, isVeg, imageUrl, image_url } = req.body;
+
+    if (!name || price === undefined) {
+      return res.status(400).json({ success: false, error: 'Name and price are required' });
+    }
+
+    const item = await stockService.createMenuItem(vendorId, {
+      name,
+      price,
+      stock,
+      category: category || 'Meals',
+      emoji: emoji || '🍽️',
+      isVeg: isVeg !== undefined ? isVeg : 1,
+      imageUrl: imageUrl || image_url || null
+    });
+
+    res.status(201).json({ success: true, item });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/vendors/:id/sales (Historical and date-filtered sales report)
+app.get('/api/vendors/:id/sales', async (req, res) => {
+  try {
+    const vendorId = req.params.id;
+    // Default to today in local date
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const targetDate = req.query.date || todayStr;
+
+    const v = await db.get('SELECT * FROM vendors WHERE id = ?', [vendorId]);
+    if (!v) return res.status(404).json({ success: false, error: 'Vendor not found' });
+
+    // Fetch all collected orders on targetDate
+    const orders = await db.all(
+      `SELECT o.*, s.name as student_name
+       FROM orders o
+       JOIN students s ON o.student_id = s.id
+       WHERE o.vendor_id = ? AND DATE(o.placed_at) = ? AND o.status = 'collected'
+       ORDER BY o.placed_at DESC`,
+      [vendorId, targetDate]
+    );
+
+    let totalRevenue = 0;
+    let totalItemsSold = 0;
+
+    // Build 9 AM to 8 PM hourly slots
+    const hourlyMap = {};
+    for (let h = 8; h <= 21; h++) {
+      const label = h > 12 ? `${h - 12} PM` : (h === 12 ? '12 PM' : `${h} AM`);
+      hourlyMap[h] = { hour: label, h: String(h > 12 ? h - 12 : h), count: 0, revenue: 0 };
+    }
+
+    const itemSalesMap = {};
+    const detailedOrders = [];
+
+    // Batch query all line items for the collected orders
+    let allLines = [];
+    if (orders.length > 0) {
+      const orderIds = orders.map(o => o.id);
+      const placeholders = orderIds.map(() => '?').join(',');
+      allLines = await db.all(
+        `SELECT oi.*, mi.name as n, mi.emoji as e, mi.category as cat, mi.image_url as img
+         FROM order_items oi
+         JOIN menu_items mi ON oi.menu_item_id = mi.id
+         WHERE oi.order_id IN (${placeholders})`,
+        orderIds
+      );
+    }
+
+    const linesByOrderId = {};
+    for (const l of allLines) {
+      if (!linesByOrderId[l.order_id]) linesByOrderId[l.order_id] = [];
+      linesByOrderId[l.order_id].push(l);
+    }
+
+    for (const o of orders) {
+      totalRevenue += o.total_amount;
+      const orderDate = new Date(o.placed_at);
+      const hour = orderDate.getHours();
+      if (hourlyMap[hour]) {
+        hourlyMap[hour].count += 1;
+        hourlyMap[hour].revenue += o.total_amount;
+      }
+
+      const lines = linesByOrderId[o.id] || [];
+
+      lines.forEach(l => {
+        totalItemsSold += l.qty;
+        if (!itemSalesMap[l.menu_item_id]) {
+          itemSalesMap[l.menu_item_id] = { id: l.menu_item_id, n: l.n, e: l.e, cat: l.cat, img: l.img, sold: 0, revenue: 0 };
+        }
+        itemSalesMap[l.menu_item_id].sold += l.qty;
+        itemSalesMap[l.menu_item_id].revenue += (l.unit_price_at_order_time * l.qty);
+      });
+
+      detailedOrders.push({
+        ...o,
+        lines
+      });
+    }
+
+    const topSellers = Object.values(itemSalesMap).sort((a, b) => b.sold - a.sold);
+    const hourlyBars = Object.values(hourlyMap).map(h => ({
+      h: h.h,
+      label: h.hour,
+      v: h.count,
+      revenue: h.revenue
+    }));
+    const maxHourly = Math.max(...hourlyBars.map(h => h.v), 1);
+    hourlyBars.forEach(h => { h.peak = (h.v === maxHourly && h.v > 0); });
+
+    const aov = orders.length ? Math.round(totalRevenue / orders.length) : 0;
+
+    res.json({
+      success: true,
+      sales: {
+        date: targetDate,
+        vendor: v,
+        totalRevenue,
+        ordersCount: orders.length,
+        aov,
+        totalItemsSold,
+        topSellers,
+        hourlyBars,
+        orders: detailedOrders,
+        eodReport: {
+          date: targetDate,
+          stallName: v.name,
+          settlementTotal: totalRevenue,
+          ordersCollected: orders.length,
+          unitsSold: totalItemsSold,
+          status: targetDate === todayStr ? 'Trading Live' : 'Settled & Reconciled',
+          paymentMethod: 'Campus Digital Wallet (100%)'
+        }
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/vendors/:id/sales/dates (Available historical dates)
+app.get('/api/vendors/:id/sales/dates', async (req, res) => {
+  try {
+    const vendorId = req.params.id;
+    const rows = await db.all(
+      `SELECT DISTINCT DATE(placed_at) as date
+       FROM orders
+       WHERE vendor_id = ?
+       ORDER BY date DESC`,
+      [vendorId]
+    );
+    res.json({ success: true, dates: rows.map(r => r.date) });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/vendors/:id/ledger
+app.get('/api/vendors/:id/ledger', async (req, res) => {
+  try {
+    const vendorId = req.params.id;
+    const entries = await ledger.getLedgerByVendor(vendorId);
+    res.json({ success: true, ledger: entries });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Serve direct mu-canteen.html if requested
+app.get('/mu-canteen.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'mu-canteen.html'));
+});
+
+// Serve frontend single-page app fallback
+app.use((req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// ---------------- SERVER STARTUP ----------------
+const PORT = process.env.PORT || 3000;
+const server = http.createServer(app);
+
+// Initialize WebSocket server
+wsService.initWebSocket(server);
+
+async function start() {
+  await db.initSchema();
+  // Check if seed needed
+  const vendors = await db.all('SELECT id FROM vendors');
+  if (!vendors.length) {
+    const { seed } = require('./db/seed');
+    await seed();
+  }
+
+  server.listen(PORT, () => {
+    console.log(`Masters Union Canteen server running on http://localhost:${PORT}`);
+  });
+}
+
+if (require.main === module) {
+  start().catch(console.error);
+}
+
+module.exports = { app, server, start };
