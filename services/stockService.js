@@ -225,10 +225,66 @@ async function createMenuItem(vendorId, { name, price, stock, category, emoji, i
   });
 }
 
+async function resetVendorMenu(vendorId) {
+  return await db.withTransaction(async (tx) => {
+    const items = await tx.all(`SELECT * FROM menu_items WHERE vendor_id = ?`, [vendorId]);
+    if (!items || !items.length) {
+      throw new Error(`No items found for vendor ${vendorId}`);
+    }
+
+    const updatedItems = [];
+    const allReleasedOrders = [];
+
+    for (const item of items) {
+      const targetStock = item.max_capacity || 20;
+      const actualDelta = targetStock - item.stock_qty;
+
+      await tx.run(
+        `UPDATE menu_items
+         SET stock_qty = ?, restock_eta_minutes = NULL
+         WHERE id = ?`,
+        [targetStock, item.id]
+      );
+
+      if (actualDelta !== 0) {
+        await ledger.logStockChange({
+          menuItemId: item.id,
+          vendorId,
+          delta: actualDelta,
+          newStock: targetStock,
+          reason: 'vendor_reset_menu',
+          tx
+        });
+      }
+
+      if (actualDelta > 0) {
+        const released = await releasePrebooksInternal({ itemId: item.id, tx });
+        allReleasedOrders.push(...released);
+      }
+
+      const updated = await tx.get(`SELECT * FROM menu_items WHERE id = ?`, [item.id]);
+      updatedItems.push(updated);
+    }
+
+    wsService.broadcastToAll('VENDOR_MENU_RESET', {
+      vendorId,
+      items: updatedItems,
+      releasedOrders: allReleasedOrders
+    });
+
+    return {
+      vendorId,
+      items: updatedItems,
+      releasedOrders: allReleasedOrders
+    };
+  });
+}
+
 module.exports = {
   updateStockQty,
   refillItem,
   markSoldOut,
   updateEta,
-  createMenuItem
+  createMenuItem,
+  resetVendorMenu
 };

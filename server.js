@@ -185,6 +185,17 @@ app.post('/api/vendors/:id/items/:itemId/sellout', async (req, res) => {
   }
 });
 
+// POST /api/vendors/:id/reset-menu (Reset vendor menu to full capacity)
+app.post('/api/vendors/:id/reset-menu', async (req, res) => {
+  try {
+    const vendorId = req.params.id;
+    const result = await stockService.resetVendorMenu(vendorId);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
 // POST /api/vendors/:id/items (Publish new menu item)
 app.post('/api/vendors/:id/items', async (req, res) => {
   try {

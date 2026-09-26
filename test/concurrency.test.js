@@ -132,6 +132,16 @@ async function runTests() {
   assert.ok(ledgerEntries.length >= 3, 'Ledger should record initial, restock, and auto-releases');
   console.log(`   ✓ Found ${ledgerEntries.length} ledger audit entries for item ${oosItem.id}.`);
 
+  // 8. Test Vendor Menu Reset
+  console.log('8. Testing vendor menu reset restores full capacity...');
+  const resetRes = await stockService.resetVendorMenu('cds');
+  assert.ok(resetRes.items.length > 0, 'Reset should return items');
+  for (const item of resetRes.items) {
+    assert.strictEqual(item.stock_qty, item.max_capacity, `Item ${item.name} stock must equal max capacity`);
+    assert.strictEqual(item.restock_eta_minutes, null, `Item ${item.name} eta must be null`);
+  }
+  console.log(`   ✓ Successfully reset ${resetRes.items.length} items to full capacity for CDS!`);
+
   console.log('--- ALL BACKEND CONCURRENCY & BUSINESS LOGIC TESTS PASSED! ---');
 }
 

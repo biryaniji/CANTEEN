@@ -115,6 +115,7 @@ input,select{font-family:inherit}
 .btn.block{width:100%}
 .btn[disabled]{opacity:.42;pointer-events:none}
 .btn.sm{padding:9px 13px;font-size:12.5px;border-radius:10px}
+.btn.gold.sm[data-act="inc"]{border-radius:999px;padding:5px 14px;box-shadow:none;border:none}
 
 .muted{color:var(--muted)}
 .tiny{font-size:11.5px}
@@ -132,8 +133,8 @@ input,select{font-family:inherit}
 .item .meta{font-size:12px;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .item .right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex:none}
 .price{font-size:15px;font-weight:600}
-.qty{display:flex;align-items:center;gap:0;background:var(--gold);border-radius:10px;overflow:hidden}
-.qty button{width:28px;height:32px;color:#0A0A0A;font-size:17px;font-weight:600;display:grid;place-items:center}
+.qty{display:flex;align-items:center;gap:0;background:var(--gold);border-radius:999px;overflow:hidden;box-shadow:none;border:none}
+.qty button{width:28px;height:26px;color:#0A0A0A;font-size:17px;font-weight:600;display:grid;place-items:center}
 .qty span{min-width:20px;text-align:center;color:#0A0A0A;font-weight:700;font-size:13.5px}
 
 .stockbar{height:4px;border-radius:99px;background:#242424;overflow:hidden;margin-top:9px}
@@ -181,6 +182,29 @@ input,select{font-family:inherit}
 .seg{display:flex;gap:8px}
 .seg button{flex:1;padding:12px;border-radius:12px;background:var(--surface);border:1px solid var(--line);font-size:13.5px;color:var(--muted)}
 .seg button.on{background:var(--gold-wash);border-color:var(--gold-dim);color:var(--gold);font-weight:600}
+
+/* ---------- date picker & sales toolbar ---------- */
+.sales-header{margin-bottom:14px}
+.sales-date-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.date-input-wrap{display:inline-flex;align-items:center;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:4px 10px;gap:6px}
+.date-input-wrap input[type="date"]{background:transparent;border:none;color:var(--text);font-size:12px;cursor:pointer;outline:none;font-family:inherit;color-scheme:dark}
+.date-input-wrap input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.8);cursor:pointer}
+
+/* ---------- EOD Report styling ---------- */
+.eod-card{background:linear-gradient(180deg,#19150B 0%,#0F0D07 100%);border:1px solid #4A3B12;border-radius:var(--r-lg);padding:18px;margin:16px 0;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.eod-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(245,197,66,.15);border:1px solid #755B1E;color:var(--gold);font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;letter-spacing:.3px;text-transform:uppercase}
+.eod-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px dashed #282419;font-size:13.5px}
+.eod-row:last-child{border-bottom:none}
+.eod-total{display:flex;justify-content:space-between;align-items:baseline;padding-top:12px;margin-top:6px;border-top:1.5px solid #4A3B12}
+
+/* ---------- Image upload in add item ---------- */
+.img-upload-box{border:1.5px dashed var(--line);border-radius:14px;padding:16px;text-align:center;background:var(--surface);cursor:pointer;transition:all .2s ease;margin-top:6px}
+.img-upload-box:hover{border-color:var(--gold-dim);background:#181818}
+.img-upload-box.has-img{border-style:solid;border-color:#33290F;background:#131109}
+.img-preview-wrap{position:relative;display:inline-block}
+.img-preview-wrap img{width:130px;height:130px;object-fit:cover;border-radius:14px;border:1.5px solid var(--gold-dim);display:block;box-shadow:0 8px 20px rgba(0,0,0,.5)}
+.img-remove-btn{position:absolute;top:-8px;right:-8px;width:26px;height:26px;border-radius:50%;background:#D32F2F;color:#fff;font-size:12px;font-weight:bold;display:grid;place-items:center;border:2px solid var(--bg);cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+
 
 /* ---------- bottom nav ---------- */
 .nav{
@@ -303,6 +327,18 @@ input,select{font-family:inherit}
 @media (min-width:1180px){
   .itemgrid{grid-template-columns:1fr 1fr 1fr}
 }
+
+@media print {
+  body { background: #fff !important; color: #000 !important; }
+  .wrap, .phone { max-width: 100% !important; height: auto !important; border: none !important; box-shadow: none !important; }
+  .modeswitch, .hint, .statusbar, #head, .nav, #fabslot, .toast, .scrim { display: none !important; }
+  .sheet { position: static !important; transform: none !important; opacity: 1 !important; border: 1px solid #ccc !important; background: #fff !important; color: #000 !important; box-shadow: none !important; max-height: none !important; width: 100% !important; }
+  .card, .stat { background: #fafafa !important; border: 1px solid #ddd !important; color: #000 !important; }
+  .muted, .tiny { color: #555 !important; }
+  .eod-total { color: #000 !important; }
+  .btn { display: none !important; }
+}
+
 </style>
 </head>
 <body>
@@ -480,18 +516,71 @@ function getStudent() {
   }
 }
 
+function loadSavedCart() {
+  try {
+    const raw = localStorage.getItem('mu_cart');
+    return raw ? JSON.parse(raw) : {};
+  } catch(e) { return {}; }
+}
+
+function saveCart(cart) {
+  try {
+    localStorage.setItem('mu_cart', JSON.stringify(cart));
+  } catch(e) {}
+}
+
+function getTodayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function getRelativeDateStr(offsetDays) {
+  const d = new Date(Date.now() + offsetDays * 24 * 60 * 60 * 1000);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function formatDisplayDate(dateStr) {
+  if (!dateStr) return 'Today';
+  const today = getTodayStr();
+  const yesterday = getRelativeDateStr(-1);
+  const twoDaysAgo = getRelativeDateStr(-2);
+  if (dateStr === today) return 'Today (' + formatDateShort(dateStr) + ')';
+  if (dateStr === yesterday) return 'Yesterday (' + formatDateShort(dateStr) + ')';
+  if (dateStr === twoDaysAgo) return '2 Days Ago (' + formatDateShort(dateStr) + ')';
+
+  try {
+    const parts = dateStr.split('-');
+    const dt = new Date(+parts[0], +parts[1] - 1, +parts[2]);
+    return dt.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  } catch(e) {
+    return dateStr;
+  }
+}
+
+function formatDateShort(dateStr) {
+  try {
+    const parts = dateStr.split('-');
+    const dt = new Date(+parts[0], +parts[1] - 1, +parts[2]);
+    return dt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  } catch(e) {
+    return dateStr;
+  }
+}
+
 const S = {
   mode: localStorage.getItem('mu_mode') || "student",
-  tab: "home",
-  atab: "sales",
-  vendorFilter: "all",
+  tab: localStorage.getItem('mu_tab') || "home",
+  atab: localStorage.getItem('mu_atab') || "sales",
+  vendorFilter: localStorage.getItem('mu_vfilter') || "all",
   catFilter: "All",
   q: "",
   focusSearch: false,
-  cart: {},        // itemId -> qty
-  slot: "ASAP",
+  cart: loadSavedCart(),
+  slot: localStorage.getItem('mu_slot') || "ASAP",
   adminVendor: localStorage.getItem('mu_admin_vendor') || "cds",
-  form: { veg: 1, e: "🍽️" }
+  salesDate: localStorage.getItem('mu_sales_date') || getTodayStr(),
+  salesData: null,
+  form: { veg: 1, e: "🍽️", imageUrl: null }
 };
 
 /* ============================ API CLIENT (FULL-STACK) ============================ */
@@ -522,8 +611,20 @@ const api = {
       eta: i.restock_eta_minutes,
       cat: i.category,
       sold: i.units_sold_today || 0,
-      img: IMG[i.id] || null
+      img: i.image_url || i.imageUrl || IMG[i.id] || null
     }));
+  },
+  async getVendorSales(vendorId, date){
+    const q = date ? `?date=${encodeURIComponent(date)}` : '';
+    const res = await fetch(`/api/vendors/${vendorId}/sales${q}`);
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'Failed to fetch sales');
+    return data.sales;
+  },
+  async getVendorSalesDates(vendorId){
+    const res = await fetch(`/api/vendors/${vendorId}/sales/dates`);
+    const data = await res.json();
+    return data.dates || [];
   },
   async getOrdersMine(){
     const student = getStudent();
@@ -641,6 +742,15 @@ const api = {
     const data = await res.json();
     if(!res.ok) throw new Error(data.error || 'Publish failed');
     return data.item;
+  },
+  async resetVendorMenu(vendorId){
+    const res = await fetch(`/api/vendors/${vendorId}/reset-menu`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-vendor-id': vendorId }
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'Reset menu failed');
+    return data;
   }
 };
 
@@ -737,6 +847,28 @@ async function handleRealtimeEvent(msg) {
     await refreshItems();
     render();
     if (S.mode === 'student') toast(`New item added: ${msg.data.item.name}`);
+  } else if (msg.type === 'VENDOR_MENU_RESET') {
+    if (msg.data.items && msg.data.items.length) {
+      msg.data.items.forEach(newItem => {
+        const existing = ITEMS.find(i => i.id === newItem.id);
+        if (existing) {
+          existing.stock = newItem.stock_qty;
+          existing.cap = newItem.max_capacity;
+          existing.eta = newItem.restock_eta_minutes;
+        }
+      });
+      try { localStorage.setItem('mu_cached_items', JSON.stringify(ITEMS)); } catch(e){}
+    }
+    if (msg.data.releasedOrders && msg.data.releasedOrders.length) {
+      await refreshOrders();
+      if (S.mode === 'student') {
+        toast(`Restocked! Your pre-booked order moved straight into cooking.`);
+      }
+    }
+    if (S.mode === 'admin' && S.adminVendor === msg.data.vendorId) {
+      toast(`Menu reset to full capacity for ${vendor(msg.data.vendorId)?.name || 'vendor'}.`);
+    }
+    render();
   }
 }
 
@@ -806,6 +938,9 @@ function renderHead(){
           <h1>${esc(v.name)}</h1>
           <p>Vendor console · ${v.open?"Accepting orders":"Closed"}</p>
         </div>
+        <button class="iconbtn" data-act="resetmenu" title="Reset &amp; Refresh Menu" id="head-reset-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+        </button>
         <button class="iconbtn" data-act="vendorsheet" title="Switch stall">${icons.chev}</button>
         <button class="iconbtn" data-act="atab" data-v="orders">${icons.bell}
           ${qCount?`<span class="dot">${qCount}</span>`:""}
@@ -1031,7 +1166,7 @@ function screenOrders(){
   ${past.length?`<div class="sec"><div class="ico">📁</div><h2>Earlier today</h2></div>
     <div class="card" style="padding:4px 16px">
       ${past.map(o=>`<div class="row">
-        <div class="thumb" style="width:38px;height:38px;font-size:18px">${pic(item(o.lines[0]?.i)) || '🍽️'}</div>
+        <div class="thumb" style="width:38px;height:38px;font-size:18px">${pic(item(o.lines[0]?.i) || o.lines[0]) || (o.lines[0]?.e || '🍽️')}</div>
         <div style="flex:1"><div style="font-size:14px">${o.lines.map(l=>esc(item(l.i)?.n || l.n || 'Item')).join(", ")}</div>
         <div class="tiny muted">${o.id} · ${esc(vendor(o.v).name)}</div></div>
         <div style="font-size:14px;font-weight:600">${rupee(o.total)}</div>
@@ -1069,63 +1204,215 @@ function screenProfile(){
 const queueOf = v => ORDERS.filter(o=>o.v===v && ["placed","preparing","ready","queued"].includes(o.status));
 const soldToday = v => ORDERS.filter(o=>o.v===v && o.status==="collected");
 
+function getEffectiveSales() {
+  const v = S.adminVendor;
+  if (S.salesData && S.salesData.date === S.salesDate && S.salesData.vendor?.id === v) {
+    return S.salesData;
+  }
+  const targetDate = S.salesDate || getTodayStr();
+  const dateOrders = ORDERS.filter(o => o.v === v && o.status === "collected" && (!o.placed_at || o.placed_at.startsWith(targetDate)));
+  const rev = dateOrders.reduce((a, o) => a + (o.total || 0), 0);
+  const items = ITEMS.filter(i => i.v === v);
+  const itemsSoldMap = {};
+  let totalUnits = 0;
+  dateOrders.forEach(o => {
+    (o.lines || []).forEach(l => {
+      totalUnits += (l.q || 0);
+      const it = item(l.i);
+      const id = l.i;
+      if (!itemsSoldMap[id]) {
+        itemsSoldMap[id] = { id, n: it ? it.n : (l.n || 'Item'), e: it ? it.e : (l.e || '🍽️'), img: it ? it.img : null, sold: 0, revenue: 0 };
+      }
+      itemsSoldMap[id].sold += l.q;
+      itemsSoldMap[id].revenue += ((l.p || (it ? it.p : 0)) * l.q);
+    });
+  });
+  const topSellers = Object.values(itemsSoldMap).sort((a, b) => b.sold - a.sold);
+  const hourlyBars = HOURLY.map(h => ({ ...h, peak: false }));
+
+  return {
+    date: targetDate,
+    totalRevenue: rev,
+    ordersCount: dateOrders.length,
+    aov: dateOrders.length ? Math.round(rev / dateOrders.length) : 0,
+    totalItemsSold: totalUnits,
+    topSellers: topSellers.length ? topSellers : items.slice(0, 4).map(i => ({ id: i.id, n: i.n, e: i.e, img: i.img, sold: i.sold, revenue: i.sold * i.p })),
+    hourlyBars: hourlyBars,
+    orders: dateOrders,
+    eodReport: {
+      date: targetDate,
+      stallName: vendor(v).name,
+      settlementTotal: rev,
+      ordersCollected: dateOrders.length,
+      unitsSold: totalUnits,
+      status: targetDate === getTodayStr() ? 'Trading Live' : 'Settled & Reconciled',
+      paymentMethod: 'Campus Digital Wallet (100%)'
+    }
+  };
+}
+
 function screenSales(){
-  const v=S.adminVendor;
-  const orders=soldToday(v);
-  const rev=orders.reduce((a,o)=>a+o.total,0);
-  const items=ITEMS.filter(i=>i.v===v);
-  const low=items.filter(i=>i.stock>0&&i.stock<=3);
-  const out=items.filter(i=>i.stock===0);
-  const pre=ORDERS.filter(o=>o.v===v&&o.status==="queued");
-  const max=Math.max(...HOURLY.map(h=>h.v));
-  const top=[...items].sort((a,b)=>b.sold-a.sold).slice(0,4);
+  const v = S.adminVendor;
+  const sales = getEffectiveSales();
+  const today = getTodayStr();
+  const yesterday = getRelativeDateStr(-1);
+  const twoDaysAgo = getRelativeDateStr(-2);
+  const isCurrentDay = S.salesDate === today;
+
+  const items = ITEMS.filter(i => i.v === v);
+  const low = items.filter(i => i.stock > 0 && i.stock <= 3);
+  const out = items.filter(i => i.stock === 0);
+  const pre = ORDERS.filter(o => o.v === v && o.status === "queued");
+
+  const hourlyList = (sales.hourlyBars && sales.hourlyBars.length) ? sales.hourlyBars : HOURLY;
+  const maxBar = Math.max(...hourlyList.map(h => h.v || 0), 1);
+  const topList = (sales.topSellers && sales.topSellers.length) ? sales.topSellers.slice(0, 5) : items.slice(0, 4);
 
   return `
-  <div class="grid2">
-    <div class="stat"><div class="k">Revenue today</div><div class="v">${rupee(rev)}</div><div class="d">▲ 12% vs yesterday</div></div>
-    <div class="stat"><div class="k">Orders collected</div><div class="v">${orders.length}</div><div class="d">${queueOf(v).length} in queue now</div></div>
+  <!-- DATE SELECTION BAR -->
+  <div class="sales-header card" style="margin-bottom:14px;padding:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div>
+        <div class="tiny muted" style="text-transform:uppercase;letter-spacing:.4px">Sales & Settlement Console</div>
+        <div style="font-size:16px;font-weight:600;margin-top:2px;display:flex;align-items:center;gap:6px">
+          📅 ${formatDisplayDate(S.salesDate)}
+        </div>
+      </div>
+      <span class="tag ${isCurrentDay ? "green" : "gold"}">
+        <span class="bulb"></span>${isCurrentDay ? "Trading Live" : "Day Reconciled"}
+      </span>
+    </div>
+
+    <!-- QUICK DATE SELECTOR -->
+    <div style="display:flex;align-items:center;gap:7px;overflow-x:auto;padding-bottom:2px" class="rail">
+      <button class="pill sm ${S.salesDate === today ? "on" : ""}" data-act="setsalesdate" data-v="${today}">Today</button>
+      <button class="pill sm ${S.salesDate === yesterday ? "on" : ""}" data-act="setsalesdate" data-v="${yesterday}">Yesterday</button>
+      <button class="pill sm ${S.salesDate === twoDaysAgo ? "on" : ""}" data-act="setsalesdate" data-v="${twoDaysAgo}">2 Days Ago</button>
+      <div class="date-input-wrap" title="Select custom historical date">
+        <span style="font-size:12px;color:var(--muted)">📅</span>
+        <input type="date" id="sales-datepicker" value="${S.salesDate}" max="${today}">
+      </div>
+    </div>
   </div>
 
-  ${(low.length||out.length||pre.length)?`
+  <!-- KEY FINANCIAL METRICS -->
+  <div class="grid2">
+    <div class="stat">
+      <div class="k">${isCurrentDay ? "Revenue today" : "Total day sales"}</div>
+      <div class="v">${rupee(sales.totalRevenue)}</div>
+      <div class="d">${isCurrentDay ? "▲ Live counter" : "✓ Settled in ledger"}</div>
+    </div>
+    <div class="stat">
+      <div class="k">Orders completed</div>
+      <div class="v">${sales.ordersCount}</div>
+      <div class="d">${isCurrentDay ? queueOf(v).length + " in queue now" : sales.totalItemsSold + " items sold"}</div>
+    </div>
+  </div>
+
+  <div class="grid2" style="margin-top:10px">
+    <div class="stat">
+      <div class="k">Avg Order Value (AOV)</div>
+      <div class="v">${rupee(sales.aov)}</div>
+      <div class="d">per transaction</div>
+    </div>
+    <div class="stat">
+      <div class="k">Total Items Dispensed</div>
+      <div class="v">${sales.totalItemsSold}</div>
+      <div class="d">across all orders</div>
+    </div>
+  </div>
+
+  <!-- END OF DAY REPORT FEATURE CARD -->
+  <div class="card eod-card" style="margin:14px 0 16px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <span class="eod-badge">📋 Masters Union Settlement</span>
+        <div style="font-size:16px;font-weight:600;margin-top:6px">End of Day (EOD) Report</div>
+        <div class="tiny muted" style="margin-top:2px">Audited breakdown for ${formatDisplayDate(S.salesDate)}</div>
+      </div>
+      <button class="btn gold sm" data-act="openeod">Open Report</button>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:12px;padding-top:12px;border-top:1px dashed #3D3215;font-size:12.5px">
+      <div><span class="muted">Net Settlement:</span> <b style="color:var(--gold)">${rupee(sales.totalRevenue)}</b></div>
+      <div><span class="muted">Campus Wallet:</span> <b>100%</b></div>
+      <div><span class="muted">Status:</span> <b style="color:var(--green)">Verified</b></div>
+    </div>
+  </div>
+
+  <!-- ONLY SHOW QUEUE / LOW STOCK ALERTS IF TODAY -->
+  ${isCurrentDay && (low.length || out.length || pre.length) ? `
   <div class="sec"><div class="ico">⚠️</div><h2>Needs you now</h2></div>
   <div class="card" style="padding:4px 16px">
-    ${pre.length?`<div class="row">
+    ${pre.length ? `<div class="row">
       <div class="thumb" style="width:38px;height:38px;font-size:18px;background:#2A1E0C;border-color:#4A3B12">⏳</div>
-      <div style="flex:1"><div style="font-size:14px">${pre.length} student${pre.length>1?"s":""} pre-booked sold-out items</div>
+      <div style="flex:1"><div style="font-size:14px">${pre.length} student${pre.length > 1 ? "s" : ""} pre-booked sold-out items</div>
       <div class="tiny muted">Add stock and their orders start automatically</div></div>
       <button class="btn gold sm" data-act="atab" data-v="stock">Restock</button>
-    </div>`:""}
-    ${out.map(i=>`<div class="row">
+    </div>` : ""}
+    ${out.map(i => `<div class="row">
       <div class="thumb" style="width:38px;height:38px;font-size:18px">${pic(i)}</div>
       <div style="flex:1"><div style="font-size:14px">${esc(i.n)} is sold out</div>
-      <div class="tiny muted">${i.eta?`Students told: back in ${i.eta} min`:"Hidden from the live menu"}</div></div>
+      <div class="tiny muted">${i.eta ? "Students told: back in " + i.eta + " min" : "Hidden from the live menu"}</div></div>
       <span class="tag red">0 left</span>
     </div>`).join("")}
-    ${low.map(i=>`<div class="row">
+    ${low.map(i => `<div class="row">
       <div class="thumb" style="width:38px;height:38px;font-size:18px">${pic(i)}</div>
       <div style="flex:1"><div style="font-size:14px">${esc(i.n)} running low</div>
       <div class="tiny muted">Sold ${i.sold} today</div></div>
       <span class="tag orange">${i.stock} left</span>
     </div>`).join("")}
-  </div>`:""}
+  </div>` : ""}
 
-  <div class="sec"><div class="ico">📈</div><h2>Orders by hour</h2></div>
+  <!-- HOURLY SALES CHART -->
+  <div class="sec"><div class="ico">📈</div><h2>Orders by hour (${formatDateShort(S.salesDate)})</h2></div>
   <div class="card">
-    <div style="font-size:13px;color:var(--muted)">Lunch rush peaks at 12 — prep ${top[0]?esc(top[0].n):'popular items'} ahead.</div>
+    <div style="font-size:13px;color:var(--muted)">Hourly sales velocity — shows volume peaks for kitchen prep.</div>
     <div class="bars">
-      ${HOURLY.map(h=>`<div class="col ${h.v===max?"peak":""}">
-        <div class="bar" style="height:${Math.round(h.v/max*78)}px"></div><div class="lb">${h.h}</div></div>`).join("")}
+      ${hourlyList.map(h => `<div class="col ${h.peak || (h.v === maxBar && h.v > 0) ? "peak" : ""}" title="${h.label || (h.h + ':00')}: ${h.v || 0} orders (${rupee(h.revenue || 0)})">
+        <div class="bar" style="height:${Math.max(5, Math.round((h.v || 0) / maxBar * 78))}px"></div>
+        <div class="lb">${h.h || h.label}</div>
+      </div>`).join("")}
     </div>
   </div>
 
-  <div class="sec"><div class="ico">🏆</div><h2>Top sellers</h2></div>
+  <!-- TOP SELLERS FOR THIS DATE -->
+  <div class="sec"><div class="ico">🏆</div><h2>Top sellers on ${formatDateShort(S.salesDate)}</h2></div>
   <div class="card" style="padding:4px 16px">
-    ${top.map(i=>`<div class="row">
-      <div class="thumb" style="width:38px;height:38px;font-size:18px">${pic(i)}</div>
-      <div style="flex:1"><div style="font-size:14px">${esc(i.n)}</div><div class="tiny muted">${i.sold} sold · ${rupee(i.p*i.sold)}</div></div>
-      <div class="stockbar" style="width:64px;margin:0"><i style="width:${Math.round(i.sold/(top[0]?.sold||1)*100)}%"></i></div>
-    </div>`).join("")}
-  </div>`;
+    ${topList.length ? topList.map(i => `<div class="row">
+      <div class="thumb" style="width:38px;height:38px;font-size:18px">${i.img ? '<img class="pic" src="' + i.img + '" alt="">' : (i.e || '🍽️')}</div>
+      <div style="flex:1">
+        <div style="font-size:14px">${esc(i.n)}</div>
+        <div class="tiny muted">${i.sold} sold · ${rupee(i.revenue || (i.p * i.sold))}</div>
+      </div>
+      <div class="stockbar" style="width:64px;margin:0"><i style="width:${Math.round((i.sold || 0) / (topList[0]?.sold || 1) * 100)}%"></i></div>
+    </div>`).join("") : `<div style="padding:16px 0;text-align:center;color:var(--muted);font-size:13px">No sales recorded on this date</div>`}
+  </div>
+
+  <!-- COMPLETED ORDERS FOR THIS DATE -->
+  <div class="sec"><div class="ico">🧾</div><h2>Order receipts for ${formatDateShort(S.salesDate)} (${(sales.orders || []).length})</h2></div>
+  ${(sales.orders && sales.orders.length) ? `
+  <div class="cardgrid">
+    ${sales.orders.map(o => `
+      <div class="card" style="margin-bottom:9px;padding:12px 14px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <span style="font-weight:600;font-size:14.5px">${o.id}</span>
+            <span class="tiny muted" style="margin-left:6px">${o.student_name || o.who || 'Student'}</span>
+          </div>
+          <span style="font-weight:700;color:var(--gold);font-size:14px">${rupee(o.total || o.total_amount)}</span>
+        </div>
+        <div class="tiny muted" style="margin-top:4px;display:flex;align-items:center;gap:8px">
+          <span>🕒 ${o.placed_at ? (o.placed_at.split(' ')[1] || o.placed_at) : o.slot}</span>
+          <span>·</span>
+          <span>${(o.lines || []).map(l => (l.q || 1) + 'x ' + (l.n || item(l.i)?.n || 'Item')).join(', ')}</span>
+        </div>
+      </div>
+    `).join("")}
+  </div>` : `
+  <div class="card" style="text-align:center;padding:24px;color:var(--muted);font-size:13px">
+    No completed orders on ${formatDisplayDate(S.salesDate)}.
+  </div>`}
+  `;
 }
 
 function screenAdminOrders(){
@@ -1146,7 +1433,7 @@ function screenAdminOrders(){
       </div>
       <div style="margin:13px 0;display:flex;flex-direction:column;gap:7px">
         ${o.lines.map(l=>`<div style="display:flex;gap:10px;align-items:center;font-size:14px">
-          <span class="linepic">${pic(item(l.i)) || '🍽️'}</span>
+          <span class="linepic">${pic(item(l.i) || l) || (l.e || '🍽️')}</span>
           <span style="flex:1">${esc(item(l.i)?.n || l.n || 'Item')}</span>
           <span class="muted">× ${l.q}</span>
         </div>`).join("")}
@@ -1164,7 +1451,13 @@ function screenStock(){
   const items=ITEMS.filter(i=>i.v===S.adminVendor);
   const demand=id=>ORDERS.filter(o=>o.status==="queued"&&o.lines.some(l=>l.i===id)).reduce((a,o)=>a+o.lines.filter(l=>l.i===id).reduce((x,l)=>x+l.q,0),0);
   return `
-  <div class="tiny muted" style="margin:6px 0 14px">Every change here updates the student app and counter live.</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0 14px;gap:8px">
+    <div class="tiny muted" style="flex:1">Every change here updates the student app instantly.</div>
+    <button class="btn outline sm" data-act="resetmenu" id="stock-reset-btn" style="border-radius:999px;gap:6px;font-weight:600;white-space:nowrap;padding:6px 14px;font-size:12px">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+      Reset Menu
+    </button>
+  </div>
   <div class="cardgrid">${items.map(i=>{
     const d=demand(i.id);
     return `
@@ -1197,6 +1490,29 @@ function screenStock(){
 function screenAdd(){
   return `
   <div class="tiny muted" style="margin:6px 0 16px">New items go live on the student menu as soon as you publish.</div>
+  
+  <!-- ITEM PHOTO UPLOAD -->
+  <div class="field">
+    <label>Dish Photo <span style="font-size:11.5px;color:var(--muted);font-weight:normal">(Upload custom picture or choose icon)</span></label>
+    <div class="img-upload-box ${S.form.imageUrl ? 'has-img' : ''}" id="img-upload-box">
+      <input type="file" id="f-image-file" accept="image/*" style="display:none">
+      ${S.form.imageUrl ? `
+        <div class="img-preview-wrap">
+          <img src="${S.form.imageUrl}" alt="Preview">
+          <button type="button" class="img-remove-btn" data-act="removeimg" title="Remove image">✕</button>
+        </div>
+        <div style="font-size:12px;color:var(--green);font-weight:600;margin-top:8px">✓ Custom Photo Attached</div>
+        <button type="button" class="btn ghost sm" style="margin-top:6px" onclick="document.getElementById('f-image-file').click()">Change photo</button>
+      ` : `
+        <div onclick="document.getElementById('f-image-file').click()" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 0;cursor:pointer">
+          <div style="width:48px;height:48px;border-radius:50%;background:var(--surface-2);display:grid;place-items:center;font-size:22px">📷</div>
+          <div style="font-size:14px;font-weight:600;color:var(--text)">Tap to upload dish photo</div>
+          <div class="tiny muted">PNG, JPG, WebP supported · Displays on student cards & checkout</div>
+        </div>
+      `}
+    </div>
+  </div>
+
   <div class="field"><label>Item name</label><input id="f-n" placeholder="e.g. Paneer Kathi Roll"></div>
   <div class="grid2">
     <div class="field"><label>Price (₹)</label><input id="f-p" type="number" inputmode="numeric" placeholder="120"></div>
@@ -1205,8 +1521,8 @@ function screenAdd(){
   <div class="field"><label>Category</label>
     <select id="f-c">${["Meals","Snacks","Drinks","Bakery"].map(c=>`<option>${c}</option>`).join("")}</select>
   </div>
-  <div class="field"><label>Icon</label>
-    <div class="rail" style="margin:0">${["🍛","🌯","🥪","🍜","🥗","🍰","🧋","🥤","🥟","🫓"].map(e=>`
+  <div class="field"><label>Fallback icon (used if no photo attached)</label>
+    <div class="rail" style="margin:0">${["🍛","🌯","🥪","🍜","🥗","🍰","🧋","🥤","🥟","🫓","🥘","☕"].map(e=>`
       <button class="pill ${S.form.e===e?"on":""}" data-act="femoji" data-v="${e}" style="font-size:19px;padding:9px 13px">${e}</button>`).join("")}</div>
   </div>
   <div class="field"><label>Food type</label>
@@ -1350,6 +1666,101 @@ function tokenSheet(ordersList){
   `);
 }
 
+
+
+function handleImageUpload(file) {
+  if (!file) return;
+  if (!file.type || !file.type.startsWith('image/')) {
+    toast("⚠️ Please upload a valid image file (PNG, JPG, WebP).");
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    toast("⚠️ Image size exceeds 5MB limit. Please choose a smaller photo.");
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    S.form.imageUrl = evt.target.result;
+    toast(`✓ Photo loaded: ${file.name} (${Math.round(file.size / 1024)} KB)`);
+    render();
+  };
+  reader.onerror = function() {
+    toast("⚠️ Error reading image file.");
+  };
+  reader.readAsDataURL(file);
+}
+
+function openEodSheet() {
+  const sales = getEffectiveSales();
+  const v = vendor(S.adminVendor);
+  const isCurrentDay = S.salesDate === getTodayStr();
+
+  openSheet(`
+    <div style="padding:4px 0 16px">
+      <div style="text-align:center;border-bottom:1px dashed #2E2E2E;padding-bottom:14px;margin-bottom:14px">
+        <div style="font-size:11px;letter-spacing:1px;color:var(--gold);font-weight:700;text-transform:uppercase">Masters Union Campus Dining</div>
+        <h3 style="font-size:18px;margin:4px 0 2px">End of Day (EOD) Settlement</h3>
+        <div class="tiny muted">${v.name} · ${v.floor}</div>
+        <div class="tiny muted" style="margin-top:3px">Settlement Date: <b>${formatDisplayDate(S.salesDate)}</b></div>
+      </div>
+
+      <div class="card" style="background:#171717;border-color:#2E2E2E;padding:12px 14px;margin-bottom:14px">
+        <div class="eod-row">
+          <span class="muted">Settlement Status</span>
+          <span class="tag ${isCurrentDay ? 'green' : 'gold'}">${isCurrentDay ? '● Trading Live (Provisional)' : '✓ Closed & Reconciled'}</span>
+        </div>
+        <div class="eod-row">
+          <span class="muted">Orders Processed</span>
+          <b>${sales.ordersCount} completed</b>
+        </div>
+        <div class="eod-row">
+          <span class="muted">Total Food Items Sold</span>
+          <b>${sales.totalItemsSold} units</b>
+        </div>
+        <div class="eod-row">
+          <span class="muted">Average Ticket Value</span>
+          <b>${rupee(sales.aov)}</b>
+        </div>
+        <div class="eod-row">
+          <span class="muted">Campus Wallet (Digital 100%)</span>
+          <b>${rupee(sales.totalRevenue)}</b>
+        </div>
+        <div class="eod-row">
+          <span class="muted">Cash / Physical Counter</span>
+          <b>₹0</b>
+        </div>
+        <div class="eod-row">
+          <span class="muted">Campus Platform Subsidy (0%)</span>
+          <b style="color:var(--green)">₹0 (Free)</b>
+        </div>
+        <div class="eod-total">
+          <span style="font-weight:600;font-size:15px">Net Payout to Stall</span>
+          <span style="font-weight:700;font-size:22px;color:var(--gold)">${rupee(sales.totalRevenue)}</span>
+        </div>
+      </div>
+
+      <div style="font-size:13px;font-weight:600;margin-bottom:8px">Item Sales Summary</div>
+      <div class="card" style="padding:4px 14px;margin-bottom:16px;max-height:160px;overflow-y:auto">
+        ${(sales.topSellers && sales.topSellers.length) ? sales.topSellers.map(i => `
+          <div class="row" style="padding:8px 0;font-size:13px">
+            <span style="width:24px;font-size:15px">${i.e || '🍽️'}</span>
+            <span style="flex:1">${esc(i.n)}</span>
+            <span class="muted" style="margin-right:12px">× ${i.sold}</span>
+            <b style="color:var(--text)">${rupee(i.revenue || (i.p * i.sold))}</b>
+          </div>
+        `).join("") : `<div class="tiny muted" style="padding:10px 0;text-align:center">No item lines on this date</div>`}
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn gold" style="flex:1" data-act="printeod">🖨️ Print / PDF</button>
+        <button class="btn outline" style="flex:1" data-act="copyeod">📋 Copy Summary</button>
+        <button class="btn ghost" data-act="closesheet">Close</button>
+      </div>
+      <div class="tiny muted" style="margin-top:10px;text-align:center">Audited by Masters Union Dining Services · Automated Reconciliation</div>
+    </div>
+  `);
+}
+
 /* ============================ EVENT HANDLERS & ACTIONS ============================ */
 document.addEventListener("click", async e => {
   const el=e.target.closest("[data-act]"); if(!el) return;
@@ -1364,8 +1775,57 @@ document.addEventListener("click", async e => {
       render();
       break;
 
-    case "tab": S.tab=v; closeSheet(); $("#screen").scrollTop=0; render(); break;
-    case "atab": S.atab=v; closeSheet(); $("#screen").scrollTop=0; render(); break;
+    case "tab":
+      S.tab=v;
+      localStorage.setItem('mu_tab', v);
+      closeSheet();
+      $("#screen").scrollTop=0;
+      render();
+      break;
+
+    case "atab":
+      S.atab=v;
+      localStorage.setItem('mu_atab', v);
+      closeSheet();
+      $("#screen").scrollTop=0;
+      if (v === "sales") refreshSales(S.salesDate).then(() => render());
+      render();
+      break;
+
+    case "setsalesdate":
+      S.salesDate = v;
+      localStorage.setItem('mu_sales_date', v);
+      await refreshSales(v);
+      render();
+      break;
+
+    case "openeod":
+      openEodSheet();
+      break;
+
+    case "printeod":
+      window.print();
+      break;
+
+    case "copyeod": {
+      const sales = getEffectiveSales();
+      const v = vendor(S.adminVendor);
+      const isCurrent = S.salesDate === getTodayStr();
+      const summaryText = `MASTERS UNION CAMPUS DINING\nEnd of Day Settlement - ${v.name} (${v.floor})\nDate: ${formatDisplayDate(S.salesDate)}\n----------------------------------------\nOrders Completed: ${sales.ordersCount}\nTotal Items Dispensed: ${sales.totalItemsSold}\nGross Revenue: ${rupee(sales.totalRevenue)}\nAverage Order Value: ${rupee(sales.aov)}\nCampus Digital Wallet: 100%\nPlatform Subsidy: ₹0 (Free)\nNet Settlement Payout: ${rupee(sales.totalRevenue)}\nStatus: ${isCurrent ? 'Trading Live (Provisional)' : 'Reconciled & Transferred'}\n----------------------------------------\nAudited by Masters Union Dining Services`;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(summaryText)
+          .then(() => toast("✓ EOD Settlement copied to clipboard!"))
+          .catch(() => toast("Could not access clipboard"));
+      } else {
+        toast("Clipboard not supported");
+      }
+      break;
+    }
+
+    case "removeimg":
+      S.form.imageUrl = null;
+      render();
+      break;
     case "vf": S.vendorFilter = (S.vendorFilter===v?"all":v); render(); break;
     case "cf": S.catFilter=v; render(); break;
     case "openvendor": S.vendorFilter=v; S.tab="menu"; S.catFilter="All"; closeSheet(); $("#screen").scrollTop=0; render(); break;
@@ -1395,7 +1855,7 @@ document.addEventListener("click", async e => {
       if(!i) break;
       if(i.stock===0 && !i.eta){toast("That one's off the menu for today.");break;}
       if(i.stock>0 && (S.cart[i.id]||0)>=i.stock){toast(`Only ${i.stock} of ${esc(i.n)} left right now.`);break;}
-      S.cart[i.id]=(S.cart[i.id]||0)+1;
+      S.cart[i.id]=(S.cart[i.id]||0)+1; saveCart(S.cart);
       if(i.stock===0) toast(`${esc(i.n)} pre-booked — you'll be notified when it's restocked.`);
       render(); if($("#sheet").classList.contains("on")) cartSheet();
       break;
@@ -1405,7 +1865,7 @@ document.addEventListener("click", async e => {
       const id=+v;
       if(S.cart[id]){
         S.cart[id]--;
-        if(S.cart[id]<=0) delete S.cart[id];
+        if(S.cart[id]<=0) delete S.cart[id]; saveCart(S.cart);
       }
       render();
       if($("#sheet").classList.contains("on")) cartCount()?cartSheet():closeSheet();
@@ -1432,7 +1892,7 @@ document.addEventListener("click", async e => {
       // Try full-stack checkout first, fall back to in-memory simulation
       try {
         const createdOrders = await api.checkout(cartItems, S.slot);
-        S.cart = {};
+        S.cart = {}; saveCart(S.cart);
         await refreshAllData();
         S.tab = "orders";
         render();
@@ -1501,6 +1961,7 @@ document.addEventListener("click", async e => {
     case "setvendor":{
       S.adminVendor=v;
       localStorage.setItem('mu_admin_vendor', v);
+      if(S.atab==='sales') await refreshSales();
       closeSheet();
       if (socket && socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify({ type: 'SUBSCRIBE_SCOPE', scope: `vendor:${v}` }));
@@ -1613,41 +2074,79 @@ document.addEventListener("click", async e => {
       const st=+document.getElementById("f-s").value;
       if(!n||!p){ toast("Add a name and a price to publish this item."); break; }
 
+      const cat = document.getElementById("f-c").value;
+      const emoji = S.form.e || "🍽️";
+      const imageUrl = S.form.imageUrl || null;
+
       try {
         await api.publishItem(S.adminVendor, {
           name: n,
           price: p,
           stock: st || 0,
-          category: document.getElementById("f-c").value,
-          emoji: S.form.e || "🍽️",
-          isVeg: S.form.veg
+          category: cat,
+          emoji: emoji,
+          isVeg: S.form.veg,
+          imageUrl: imageUrl
         });
-        S.form = { veg: 1, e: "🍽️" };
+        S.form = { veg: 1, e: "🍽️", imageUrl: null };
         S.atab = "stock";
+        localStorage.setItem('mu_atab', 'stock');
         await refreshItems();
         toast(`${esc(n)} is live on the student menu.`);
         render();
       } catch(err){
         const ni={
-          id: Math.max(...ITEMS.map(i=>i.id))+1,
+          id: Math.max(...ITEMS.map(i=>i.id), 0)+1,
           v: S.adminVendor,
           n,
-          e: S.form.e || "🍽️",
+          e: emoji,
           p,
           veg: S.form.veg,
           stock: st||0,
           cap: Math.max(st||0, 10),
           eta: st ? null : 15,
-          cat: document.getElementById("f-c").value,
+          cat: cat,
           sold: 0,
-          img: null
+          img: imageUrl
         };
         ITEMS.push(ni);
-        S.form = { veg: 1, e: "🍽️" };
+        try { localStorage.setItem('mu_cached_items', JSON.stringify(ITEMS)); } catch(e){}
+        S.form = { veg: 1, e: "🍽️", imageUrl: null };
         S.atab = "stock";
+        localStorage.setItem('mu_atab', 'stock');
         toast(`${esc(n)} is live on the student menu.`);
         render();
       }
+      break;
+    }
+    case "resetmenu":{
+      const v = vendor(S.adminVendor);
+      try {
+        const res = await api.resetVendorMenu(S.adminVendor);
+        if (res && res.items) {
+          res.items.forEach(newItem => {
+            const idx = ITEMS.findIndex(i => i.id === newItem.id);
+            if (idx !== -1) {
+              ITEMS[idx] = {
+                ...ITEMS[idx],
+                stock: newItem.stock_qty,
+                cap: newItem.max_capacity,
+                eta: newItem.restock_eta_minutes
+              };
+            }
+          });
+          try { localStorage.setItem('mu_cached_items', JSON.stringify(ITEMS)); } catch(e){}
+        }
+      } catch(err) {
+        ITEMS.filter(i => i.v === S.adminVendor).forEach(i => {
+          i.stock = i.cap;
+          i.eta = null;
+          releasePrebooksLocal(i);
+        });
+        try { localStorage.setItem('mu_cached_items', JSON.stringify(ITEMS)); } catch(e){}
+      }
+      toast(`✓ ${esc(v ? v.name : 'Vendor')} menu reset to full capacity!`);
+      render();
       break;
     }
   }
@@ -1668,6 +2167,17 @@ document.addEventListener("input", e => {
 });
 
 document.addEventListener("change", e => {
+  if (e.target.id === "sales-datepicker" && e.target.value) {
+    const chosen = e.target.value;
+    S.salesDate = chosen;
+    localStorage.setItem('mu_sales_date', chosen);
+    refreshSales(chosen).then(() => render());
+  }
+
+  if (e.target.id === "f-image-file" && e.target.files && e.target.files[0]) {
+    handleImageUpload(e.target.files[0]);
+  }
+
   if (e.target.id === "custom-slot-picker" && e.target.value) {
     const chosenMins = timeToMinutes(e.target.value);
     const cartVendors = [...new Set(Object.keys(S.cart).map(id => item(+id)?.v).filter(Boolean))];
@@ -1682,13 +2192,50 @@ document.addEventListener("change", e => {
   }
 });
 
+
+// Drag & Drop handlers for dish photo upload box
+document.addEventListener("dragover", e => {
+  const box = e.target.closest("#img-upload-box");
+  if (box) {
+    e.preventDefault();
+    box.style.borderColor = "var(--gold)";
+    box.style.background = "#221C0C";
+  }
+});
+
+document.addEventListener("dragleave", e => {
+  const box = e.target.closest("#img-upload-box");
+  if (box) {
+    box.style.borderColor = "";
+    box.style.background = "";
+  }
+});
+
+document.addEventListener("drop", e => {
+  const box = e.target.closest("#img-upload-box");
+  if (box) {
+    e.preventDefault();
+    box.style.borderColor = "";
+    box.style.background = "";
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleImageUpload(e.dataTransfer.files[0]);
+    }
+  }
+});
+
 /* ============================ DATA REFRESH ============================ */
 async function refreshItems(){
   try {
     const fetched = await api.getItems();
-    if(fetched && fetched.length) ITEMS = fetched;
+    if(fetched && fetched.length) {
+      ITEMS = fetched;
+      try { localStorage.setItem('mu_cached_items', JSON.stringify(ITEMS)); } catch(e){}
+    }
   } catch(e){
-    // Keep local ITEMS
+    try {
+      const cached = localStorage.getItem('mu_cached_items');
+      if (cached) ITEMS = JSON.parse(cached);
+    } catch(err){}
   }
 }
 
@@ -1696,22 +2243,47 @@ async function refreshOrders(){
   try {
     if(S.mode === 'student'){
       const fetched = await api.getOrdersMine();
-      if(fetched) ORDERS = fetched;
+      if(fetched) {
+        ORDERS = fetched;
+        try { localStorage.setItem('mu_cached_orders_student', JSON.stringify(ORDERS)); } catch(e){}
+      }
     } else {
       const fetched = await api.getVendorOrders(S.adminVendor);
-      if(fetched) ORDERS = fetched;
+      if(fetched) {
+        ORDERS = fetched;
+        try { localStorage.setItem('mu_cached_orders_' + S.adminVendor, JSON.stringify(ORDERS)); } catch(e){}
+      }
     }
   } catch(e){
-    // Keep local ORDERS
+    try {
+      const key = S.mode === 'student' ? 'mu_cached_orders_student' : ('mu_cached_orders_' + S.adminVendor);
+      const cached = localStorage.getItem(key);
+      if (cached) ORDERS = JSON.parse(cached);
+    } catch(err){}
+  }
+}
+
+async function refreshSales(date){
+  const targetDate = date || S.salesDate || getTodayStr();
+  try {
+    const data = await api.getVendorSales(S.adminVendor, targetDate);
+    if(data) S.salesData = data;
+  } catch(e){
+    // Keep local fallback calculation
   }
 }
 
 async function refreshAllData(){
   try {
-    const v = await api.getVendors();
-    if(v && v.length) VENDORS.length = 0, VENDORS.push(...v);
-    await refreshItems();
-    await refreshOrders();
+    const tasks = [
+      api.getVendors().then(v => { if(v && v.length) { VENDORS.length = 0; VENDORS.push(...v); } }),
+      refreshItems(),
+      refreshOrders()
+    ];
+    if (S.mode === 'admin') {
+      tasks.push(refreshSales(S.salesDate));
+    }
+    await Promise.all(tasks);
   } catch(e){
     // Keep local defaults
   }
@@ -1732,6 +2304,7 @@ render();
 (async function init(){
   try {
     await refreshAllData();
+    if(S.mode==='admin' && S.atab==='sales') await refreshSales(S.salesDate);
   } catch(e) { console.warn('Offline/standalone fallback active', e); }
   try {
     initRealtime();
