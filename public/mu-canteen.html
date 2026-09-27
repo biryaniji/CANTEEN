@@ -405,6 +405,40 @@ let ORDERS = [
   {id:"MU-429", v:"cds",  lines:[{i:1,q:2}],           total:240, status:"placed",    slot:"5:30 PM",  mine:false, who:"Rohan B.",  t:"5:01 PM"}
 ];
 
+let SUBSCRIPTIONS = [
+  {id:1, v:"cds",  name:"Monthly Unlimited Thali Pass", period:"monthly", price:2800, is_veg:1, emoji:"🍱", items_included:"1 Veg Thali or Rajma Chawal + Salad & Chaas daily (Mon-Sat)", description:"Daily wholesome offline lunch at CDS Canteen. Flash your pass at the billing counter to skip the queue.", active:1},
+  {id:2, v:"cds",  name:"Weekly Lunch & Dosa Pass", period:"weekly", price:720, is_veg:1, emoji:"🥞", items_included:"Choice of Masala Dosa, Curd Rice, or Rajma Chawal daily", description:"7-day hot lunch meal plan. Valid Mon-Sun at CDS ground floor counter.", active:1},
+  {id:3, v:"chai", name:"Monthly Chai Adda Club", period:"monthly", price:899, is_veg:1, emoji:"🍵", items_included:"2 Cutting Masala Chais + 1 Hot Samosa daily", description:"Daily study fuel for the 7th floor lounge. Flash your active pass at the counter for instant chai.", active:1},
+  {id:4, v:"chai", name:"Weekly Coffee & Maggi Craver", period:"weekly", price:360, is_veg:1, emoji:"☕", items_included:"1 Filter Coffee + 1 Piping Hot Maggi daily", description:"7-day quick evening snack pass between lectures and committee meetings.", active:1},
+  {id:5, v:"wrap", name:"Monthly Fitness Wrap Plan", period:"monthly", price:3400, is_veg:0, emoji:"🌯", items_included:"1 Paneer Tikka or Chicken Shawarma Wrap daily", description:"High-protein campus lunch subscription. Freshly rolled and grilled at the CDS wrap counter.", active:1},
+  {id:6, v:"wrap", name:"Weekly Wrap Rush", period:"weekly", price:890, is_veg:1, emoji:"🥙", items_included:"1 Gourmet Wrap (Veg or Non-Veg) daily", description:"7-day grab-and-go wrap subscription. Fast-track pickup at the store counter.", active:1},
+  {id:7, v:"bake", name:"Weekly Morning Brew & Croissant", period:"weekly", price:650, is_veg:1, emoji:"🥐", items_included:"1 Butter or Choco Croissant + 1 Americano daily", description:"Start every morning right at the 2nd Floor Atrium before 10 AM lectures.", active:1},
+  {id:8, v:"bake", name:"Monthly Sweet Tooth Box", period:"monthly", price:1800, is_veg:1, emoji:"🧁", items_included:"1 Gourmet Muffin or Fudge Brownie Mon-Fri", description:"Afternoon sweet break Mon-Fri for the entire month at Bake House.", active:1},
+  {id:9, v:"juice", name:"Monthly Cold-Pressed Juice Plan", period:"monthly", price:1750, is_veg:1, emoji:"🍉", items_included:"1 Fresh Watermelon or Seasonal Juice or Cold Coffee daily", description:"Freshly squeezed vitamins and energy. Redeem at 7th floor Juice Bar offline counter.", active:1}
+];
+
+let MY_SUBSCRIPTIONS = [
+  {
+    id: "MU-SUB-101",
+    student_id: "student_kabir",
+    plan_id: 3,
+    vendor_id: "chai",
+    status: "active",
+    plan_name: "Monthly Chai Adda Club",
+    period: "monthly",
+    items_included: "2 Cutting Masala Chais + 1 Hot Samosa daily",
+    description: "Daily study fuel for the 7th floor lounge. Flash your active pass at the counter for instant chai.",
+    emoji: "🍵",
+    vendor_name: "Chai Adda",
+    vendor_floor: "7th Floor Lounge",
+    vendor_emoji: "☕",
+    days_left: 24,
+    start_date: "2026-09-21T08:52:09.621Z",
+    end_date: "2026-10-21T08:52:09.621Z",
+    amount_paid: 899
+  }
+];
+
 const HOURLY = [{h:"9",v:8},{h:"10",v:14},{h:"11",v:22},{h:"12",v:41},{h:"1",v:38},{h:"2",v:19},{h:"3",v:12},{h:"4",v:17},{h:"5",v:9}];
 const SLOTS = ["ASAP","5:30 PM","6:00 PM","6:30 PM","7:00 PM"];
 
@@ -580,7 +614,12 @@ const S = {
   adminVendor: localStorage.getItem('mu_admin_vendor') || "cds",
   salesDate: localStorage.getItem('mu_sales_date') || getTodayStr(),
   salesData: null,
-  form: { veg: 1, e: "🍽️", imageUrl: null }
+  form: { veg: 1, e: "🍽️", imageUrl: null },
+  addMode: "item",
+  subPeriodFilter: "all",
+  placeFilter: "all",
+  adminSubFilter: "all",
+  subForm: { name: "", period: "monthly", price: "", description: "", itemsIncluded: "", isVeg: 1, emoji: "🍱" }
 };
 
 /* ============================ API CLIENT (FULL-STACK) ============================ */
@@ -751,6 +790,97 @@ const api = {
     const data = await res.json();
     if(!res.ok) throw new Error(data.error || 'Reset menu failed');
     return data;
+  },
+  async getSubscriptions(vendorId, period){
+    let url = '/api/subscriptions?all=true';
+    if(vendorId && vendorId !== 'all') url += `&vendorId=${encodeURIComponent(vendorId)}`;
+    if(period && period !== 'all') url += `&period=${encodeURIComponent(period)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    return data.subscriptions || [];
+  },
+  async getMySubscriptions(){
+    const student = getStudent();
+    const res = await fetch('/api/subscriptions/mine', {
+      headers: { 'x-student-id': student.id }
+    });
+    const data = await res.json();
+    return data.subscriptions || [];
+  },
+  async subscribePlan(planId){
+    const student = getStudent();
+    const res = await fetch('/api/subscriptions/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-student-id': student.id },
+      body: JSON.stringify({ studentId: student.id, studentName: student.name, planId })
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'Subscription failed');
+    return data.subscription;
+  },
+  async cancelSubscription(subId){
+    const student = getStudent();
+    const res = await fetch(`/api/subscriptions/mine/${subId}/cancel`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-student-id': student.id },
+      body: JSON.stringify({ studentId: student.id })
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'Cancellation failed');
+    return data.subscription;
+  },
+  async publishSubscription(vendorId, subData){
+    const res = await fetch(`/api/vendors/${vendorId}/subscriptions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-vendor-id': vendorId },
+      body: JSON.stringify(subData)
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'Failed to publish subscription plan');
+    return data.plan;
+  },
+  async toggleSubscription(vendorId, planId){
+    const res = await fetch(`/api/vendors/${vendorId}/subscriptions/${planId}/toggle`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-vendor-id': vendorId }
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'Failed to toggle subscription plan');
+    return data.plan;
+  },
+  async getVendorSubscribers(vendorId){
+    const res = await fetch(`/api/vendors/${vendorId}/subscribers`);
+    const data = await res.json();
+    return data.subscribers || [];
+  },
+  async updateSubscription(vendorId, planId, subData){
+    const res = await fetch(`/api/vendors/${vendorId}/subscriptions/${planId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'x-vendor-id': vendorId },
+      body: JSON.stringify(subData)
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'Failed to update subscription plan');
+    return data.plan;
+  },
+  async deleteSubscription(vendorId, planId){
+    const res = await fetch(`/api/vendors/${vendorId}/subscriptions/${planId}`, {
+      method: 'DELETE',
+      headers: { 'x-vendor-id': vendorId }
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'Failed to delete subscription plan');
+    return data;
+  },
+  async renewSubscription(subId){
+    const student = getStudent();
+    const res = await fetch(`/api/subscriptions/mine/${subId}/renew`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-student-id': student.id }
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'Failed to renew subscription');
+    return data.subscription;
   }
 };
 
@@ -869,6 +999,21 @@ async function handleRealtimeEvent(msg) {
       toast(`Menu reset to full capacity for ${vendor(msg.data.vendorId)?.name || 'vendor'}.`);
     }
     render();
+  } else if (msg.type === 'SUBSCRIPTION_CREATED') {
+    await refreshMySubscriptions();
+    render();
+    if (S.mode === 'admin' && msg.data.vendor_id === S.adminVendor) {
+      toast(`⭐ New pass subscriber: ${msg.data.student_name || 'Student'} (${msg.data.plan_name})`);
+    } else if (S.mode === 'student' && msg.data.student_id === getStudent().id) {
+      toast(`🎟️ Store Pass activated: ${msg.data.plan_name}`);
+    }
+  } else if (msg.type === 'SUBSCRIPTION_PLAN_CREATED' || msg.type === 'SUBSCRIPTION_PLAN_UPDATED') {
+    await refreshSubscriptions();
+    render();
+    if (S.mode === 'student') toast('New store subscription plan available!');
+  } else if (msg.type === 'SUBSCRIPTION_CANCELLED') {
+    await refreshMySubscriptions();
+    render();
   }
 }
 
@@ -883,6 +1028,146 @@ const cartTotal = () => Object.entries(S.cart).reduce((a,[id,q])=>{ const it = i
 const hasPrebook = () => Object.keys(S.cart).some(id=>{ const it = item(+id); return it && it.stock === 0; });
 const myOrders = () => ORDERS.filter(o=>o.mine).sort((a,b)=>new Date(b.placed_at||0)-new Date(a.placed_at||0));
 const liveMine = () => myOrders().filter(o=>o.status!=="collected" && o.status!=="cancelled");
+const subPlan = id => SUBSCRIPTIONS.find(s=>s.id===+id);
+const myActiveSubs = () => MY_SUBSCRIPTIONS.filter(s=>s.status==='active');
+function filteredSubscriptions(){
+  return SUBSCRIPTIONS.filter(s => {
+    if(!s.active && S.mode === 'student') return false;
+    const vId = s.vendor_id || s.v;
+    if(S.vendorFilter !== 'all' && vId !== S.vendorFilter) return false;
+    if(S.subPeriodFilter && S.subPeriodFilter !== 'all' && s.period !== S.subPeriodFilter) return false;
+    if(S.catFilter === 'Veg only' && !s.is_veg) return false;
+    if(S.q && !s.name.toLowerCase().includes(S.q.toLowerCase()) && !(s.items_included||'').toLowerCase().includes(S.q.toLowerCase())) return false;
+    return true;
+  });
+}
+
+function subscriptionCard(s){
+  const v = vendor(s.vendor_id || s.v);
+  const isMonthly = s.period === 'monthly';
+  const periodLabel = isMonthly ? 'Monthly Pass' : 'Weekly Pass';
+  const periodDuration = isMonthly ? '30 days' : '7 days';
+  const mySub = MY_SUBSCRIPTIONS.find(ms => ms.plan_id === s.id && ms.status === 'active');
+  return `
+  <div class="card ${mySub ? 'hero' : ''}" style="display:flex;flex-direction:column;justify-content:space-between;gap:12px;margin-bottom:11px">
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div style="display:flex;align-items:center;gap:9px">
+          <span style="font-size:26px;line-height:1">${s.emoji || '🍱'}</span>
+          <div>
+            <div style="font-size:15px;font-weight:600;display:flex;align-items:center;gap:6px">
+              <span class="veg ${s.is_veg ? '' : 'non'}"></span>
+              ${esc(s.name)}
+            </div>
+            <div class="tiny muted" style="margin-top:2px">${v.emoji} ${esc(v.name)} · ${esc(v.floor)}</div>
+          </div>
+        </div>
+        <span class="tag ${isMonthly ? 'gold' : 'green'}">${periodLabel}</span>
+      </div>
+
+      <div style="background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-top:12px;font-size:12.5px;color:#D4D4D4;line-height:1.4">
+        <div style="font-weight:600;color:var(--text);margin-bottom:3px;font-size:12px">Includes daily:</div>
+        ${esc(s.items_included || s.description)}
+      </div>
+
+      <div class="tiny muted" style="margin-top:8px;line-height:1.4">
+        ${esc(s.description || 'Valid at offline store counter. Flash digital token to redeem.')}
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid var(--line)">
+      <div>
+        <div style="font-size:18px;font-weight:700;color:var(--gold);letter-spacing:-.4px">${rupee(s.price)}</div>
+        <div class="tiny muted">for ${periodDuration} (${isMonthly ? '1 mo' : '1 wk'})</div>
+      </div>
+      ${mySub ? `
+        <button class="btn green sm" data-act="viewsubpass" data-v="${mySub.id}">View Pass ✓</button>
+      ` : `
+        <button class="btn gold sm" data-act="viewsubdetail" data-v="${s.id}">Get Pass</button>
+      `}
+    </div>
+  </div>`;
+}
+
+function activeSubCard(sub){
+  const v = vendor(sub.vendor_id);
+  const isMonthly = sub.period === 'monthly';
+  const totalDays = isMonthly ? 30 : 7;
+  const daysLeft = sub.days_left !== undefined ? sub.days_left : totalDays;
+  const pct = Math.min(100, Math.max(10, Math.round((daysLeft / totalDays) * 100)));
+  return `
+  <div class="card hero" style="margin-bottom:14px;text-align:left;position:relative">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <span class="tiny" style="color:var(--gold);font-weight:600;letter-spacing:.3px">OFFLINE STORE MEAL PASS · ${esc(v.name).toUpperCase()}</span>
+        <div style="font-size:17.5px;font-weight:700;margin-top:3px">${sub.emoji || '🎟️'} ${esc(sub.plan_name)}</div>
+      </div>
+      <span class="tag green"><span class="bulb"></span>Active · ${daysLeft}d left</span>
+    </div>
+
+    <div style="margin:10px 0 6px">
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px">
+        <span style="color:var(--muted)">Pass Token: <b style="color:var(--text)">${sub.id}</b></span>
+        <span style="color:var(--gold);font-weight:500">${daysLeft} of ${totalDays} days remaining</span>
+      </div>
+      <div class="stockbar" style="margin-top:6px;height:6px"><i style="width:${pct}%;background:var(--gold)"></i></div>
+    </div>
+
+    <div style="background:rgba(0,0,0,.35);border:1px solid rgba(245,197,66,.2);border-radius:10px;padding:9px 12px;margin:10px 0;font-size:13px;color:#E0E0E0">
+      <div style="font-weight:600;color:var(--gold);font-size:11.5px;text-transform:uppercase;margin-bottom:2px">Daily Meal Allowance:</div>
+      ${esc(sub.items_included || sub.description || 'Valid daily at offline counter')}
+    </div>
+
+    <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin-bottom:12px">
+      ${icons.pin} <span>Redeem at counter: <b>${esc(sub.vendor_floor || v.floor)}</b></span>
+    </div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn gold sm" style="flex:1;min-width:140px" data-act="viewsubpass" data-v="${sub.id}">📱 Show Counter Pass</button>
+      <button class="btn outline sm" data-act="renewsub" data-v="${sub.id}">🔄 Renew (+${isMonthly ? '30d' : '7d'})</button>
+      <button class="btn ghost sm" style="color:var(--red)" data-act="cancelsub" data-v="${sub.id}">Cancel</button>
+    </div>
+  </div>`;
+}
+
+function subAdminCard(s){
+  const isMonthly = s.period === 'monthly';
+  const matchingSubs = MY_SUBSCRIPTIONS.filter(ms => ms.plan_id === s.id && ms.status === 'active');
+  return `
+  <div class="card" style="margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:28px">${s.emoji || '🍱'}</span>
+        <div>
+          <div style="font-size:15.5px;font-weight:600;display:flex;align-items:center;gap:6px">
+            <span class="veg ${s.is_veg ? '' : 'non'}"></span>
+            ${esc(s.name)}
+          </div>
+          <div class="tiny muted" style="margin-top:2px">${rupee(s.price)} · ${isMonthly ? 'Monthly (30 days)' : 'Weekly (7 days)'} · <span style="color:var(--gold)">${matchingSubs.length} active subscriber${matchingSubs.length === 1 ? '' : 's'}</span></div>
+        </div>
+      </div>
+      <span class="tag ${s.active ? 'green' : 'orange'}">${s.active ? 'Active' : 'Paused'}</span>
+    </div>
+
+    <div style="background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-top:11px;font-size:12.5px;color:#CACACA;line-height:1.4">
+      <b style="color:var(--text)">Includes daily:</b> ${esc(s.items_included || 'Daily meal allowance')}
+    </div>
+    ${s.description ? `<div class="tiny muted" style="margin-top:6px">${esc(s.description)}</div>` : ''}
+
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+      <button class="btn outline sm" data-act="editplansheet" data-v="${s.id}">✏️ Edit Plan</button>
+      <button class="btn ${s.active ? 'ghost' : 'gold'} sm" data-act="togglesub" data-v="${s.id}">
+        ${s.active ? 'Pause Plan' : 'Resume Plan'}
+      </button>
+      <button class="btn ghost sm" data-act="viewsubscribers" data-v="${s.id}">
+        👥 View Subscribers (${matchingSubs.length})
+      </button>
+      <button class="btn ghost sm" style="color:var(--red);margin-left:auto" data-act="deleteplan" data-v="${s.id}" title="Delete Plan">
+        🗑️
+      </button>
+    </div>
+  </div>`;
+}
 
 function status(i){
   if(i.stock===0) return i.eta ? {k:"restock", label:`Restocking in ${i.eta} min`, cls:"orange"} : {k:"out", label:"Sold out today", cls:"red"};
@@ -897,6 +1182,7 @@ function toast(msg){
 }
 
 const icons = {
+  ticket:'<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 9a3 3 0 0 1 0 6v3a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-3a3 3 0 0 1 0-6V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/><path d="M13 5v2"/><path d="M13 11v2"/><path d="M13 17v2"/></svg>',
   home:'<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
   menu:'<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 4h14v16H5z"/><path d="M9 9h6M9 13h6"/></svg>',
   bag:'<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 7h12l-1 13H7L6 7z"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/></svg>',
@@ -951,8 +1237,8 @@ function renderHead(){
 
 function renderNav(){
   const set = S.mode==="student"
-    ? [["home","Home",icons.home],["menu","Menu",icons.menu],["orders","Orders",icons.bag],["profile","Profile",icons.user]]
-    : [["sales","Sales",icons.chart],["orders","Orders",icons.bag],["stock","Stock",icons.box],["add","Add item",icons.plus]];
+    ? [["home","Home",icons.home],["menu","Menu",icons.menu],["subs","Subscriptions",icons.ticket],["orders","Orders",icons.bag],["profile","Profile",icons.user]]
+    : [["sales","Sales",icons.chart],["orders","Orders",icons.bag],["stock","Stock",icons.box],["subs","Subscriptions",icons.ticket],["add","Add item",icons.plus]];
   const cur = S.mode==="student"?S.tab:S.atab;
   const brand = S.mode==="student"
     ? `<div class="brandside"><span class="lg">🍛</span><div><b>Canteen</b><i>Masters Union</i></div></div>`
@@ -1034,6 +1320,8 @@ function screenHome(){
   const hero = ITEMS.find(i=>i.id===1) || ITEMS[0];
   const o = liveMine()[0];
   const prebookable = ITEMS.filter(i=>i.stock===0&&i.eta);
+  const activeSubs = myActiveSubs();
+  const topSubs = filteredSubscriptions().slice(0, 4);
 
   return `
   <div class="sec" style="margin-top:18px">
@@ -1065,6 +1353,14 @@ function screenHome(){
   </div>
   <div class="vendorlist">${VENDORS.map(vendorCard).join("")}</div>
 
+  ${activeSubs.length ? `
+  <div class="sec">
+    <div class="ico">🎟️</div>
+    <h2>Your offline meal pass</h2>
+    <button class="link" data-act="tab" data-v="orders">All passes ${icons.chev}</button>
+  </div>
+  ${activeSubCard(activeSubs[0])}` : ""}
+
   ${o?`
   <div class="sec">
     <div class="ico">🧾</div>
@@ -1074,11 +1370,19 @@ function screenHome(){
   ${orderCard(o,false)}`:""}
 
   <div class="sec">
+    <div class="ico">📅</div>
+    <h2>Store Subscriptions</h2>
+    <button class="link" data-act="viewsubs">View all ${icons.chev}</button>
+  </div>
+  <div class="tiny muted" style="margin:-4px 0 12px">Weekly &amp; monthly offline meal plans offered directly by stalls.</div>
+  <div class="cardgrid">${topSubs.map(subscriptionCard).join("")}</div>
+
+  <div class="sec">
     <div class="ico">🍽️</div>
     <h2>What's in stock</h2>
   </div>
   <div class="rail" style="margin-bottom:13px">
-    ${["All","Available now","Meals","Snacks","Drinks","Bakery","Veg only"].map(c=>`
+    ${["All","Available now","Subscriptions","Meals","Snacks","Drinks","Bakery","Veg only"].map(c=>`
       <button class="pill ${S.catFilter===c?"on":""}" data-act="cf" data-v="${c}">${c}</button>`).join("")}
   </div>
   <div class="itemgrid">${filteredItems().slice(0,6).map(itemCard).join("")}</div>
@@ -1105,7 +1409,33 @@ function screenHome(){
 }
 
 function screenMenu(){
+  if (S.catFilter === "Subscriptions") {
+    const list = filteredSubscriptions();
+    return `
+    <div class="search">
+      ${icons.search}
+      <input id="q" placeholder="Search thali pass, chai club, wrap plan…" value="${esc(S.q)}" autocomplete="off">
+    </div>
+    <div class="rail" style="margin:14px 0 10px">
+      <button class="pill ${S.vendorFilter==="all"?"on":""}" data-act="vf" data-v="all">All vendors</button>
+      ${VENDORS.map(v=>`<button class="pill ${S.vendorFilter===v.id?"on":""}" data-act="vf" data-v="${v.id}">${v.emoji} ${esc(v.name)}</button>`).join("")}
+    </div>
+    <div class="rail" style="margin-bottom:10px">
+      ${["All","Available now","Subscriptions","Meals","Snacks","Drinks","Bakery","Veg only"].map(c=>`
+        <button class="pill ${S.catFilter===c?"on":""}" data-act="cf" data-v="${c}">${c}</button>`).join("")}
+    </div>
+    <div class="rail" style="margin-bottom:14px">
+      ${[["all","All Passes"],["weekly","Weekly Passes"],["monthly","Monthly Passes"]].map(([p,l])=>`
+        <button class="pill ${S.subPeriodFilter===p?"on":""}" data-act="subperiod" data-v="${p}">${l}</button>`).join("")}
+    </div>
+    <div class="tiny muted" style="margin-bottom:12px">${list.length} offline store passes · prepaid meal subscriptions</div>
+    ${list.length ? `<div class="cardgrid">${list.map(subscriptionCard).join("")}</div>` : `<div class="empty"><div class="e">🎟️</div>No subscription plans found.<br>Try switching vendor or pass duration.</div>`}
+    `;
+  }
+
   const list = filteredItems();
+  const vSubs = S.vendorFilter !== 'all' ? SUBSCRIPTIONS.filter(s => (s.vendor_id === S.vendorFilter || s.v === S.vendorFilter) && s.active) : [];
+
   return `
   <div class="search">
     ${icons.search}
@@ -1116,11 +1446,23 @@ function screenMenu(){
     ${VENDORS.map(v=>`<button class="pill ${S.vendorFilter===v.id?"on":""}" data-act="vf" data-v="${v.id}">${v.emoji} ${esc(v.name)}</button>`).join("")}
   </div>
   <div class="rail" style="margin-bottom:14px">
-    ${["All","Available now","Meals","Snacks","Drinks","Bakery","Veg only"].map(c=>`
+    ${["All","Available now","Subscriptions","Meals","Snacks","Drinks","Bakery","Veg only"].map(c=>`
       <button class="pill ${S.catFilter===c?"on":""}" data-act="cf" data-v="${c}">${c}</button>`).join("")}
   </div>
+
+  ${vSubs.length ? `
+    <div class="card hero" style="margin-bottom:14px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:13px;font-weight:600;color:var(--gold)">🎟️ ${vSubs.length} Store Subscription${vSubs.length>1?'s':''} Available</div>
+        <div class="tiny muted">Weekly &amp; monthly offline passes at ${esc(vendor(S.vendorFilter).name)}</div>
+      </div>
+      <button class="btn gold sm" data-act="cf" data-v="Subscriptions">View Passes</button>
+    </div>
+  ` : ''}
+
   <div class="tiny muted" style="margin-bottom:12px">${list.length} items · stock updated live by vendors</div>
-  ${list.length?`<div class="itemgrid">${list.map(itemCard).join("")}</div>`:`<div class="empty"><div class="e">🍽️</div>Nothing matches that filter.<br>Try another vendor or clear the search.</div>`}`;
+  ${list.length?`<div class="itemgrid">${list.map(itemCard).join("")}</div>`:`<div class="empty"><div class="e">🍽️</div>Nothing matches that filter.<br>Try another vendor or clear the search.</div>`}
+  `;
 }
 
 function orderCard(o,full){
@@ -1158,10 +1500,17 @@ function orderCard(o,full){
 }
 
 function screenOrders(){
-  const live=liveMine(), past=myOrders().filter(o=>o.status==="collected");
-  if(!myOrders().length) return `<div class="empty"><div class="e">🧾</div><div style="font-size:15px;color:var(--text);margin-bottom:6px">No orders yet</div>Add something from the menu and skip the queue entirely.<div style="margin-top:18px"><button class="btn gold" data-act="tab" data-v="menu">Browse the menu</button></div></div>`;
+  const live=liveMine(), past=myOrders().filter(o=>o.status==="collected"), activeSubs=myActiveSubs();
+  if(!myOrders().length && !activeSubs.length) return `<div class="empty"><div class="e">🧾</div><div style="font-size:15px;color:var(--text);margin-bottom:6px">No orders or passes yet</div>Add something from the menu or get an offline meal pass to skip lines.<div style="margin-top:18px"><button class="btn gold" data-act="tab" data-v="menu">Browse the menu</button></div></div>`;
   return `
-  ${live.length?`<div class="sec" style="margin-top:8px"><div class="ico">⏱️</div><h2>Active</h2></div>
+  ${activeSubs.length ? `
+    <div class="sec" style="margin-top:8px">
+      <div class="ico">🎟️</div>
+      <h2>Active Store Passes</h2>
+    </div>
+    ${activeSubs.map(activeSubCard).join("")}
+  ` : ''}
+  ${live.length?`<div class="sec" style="margin-top:12px"><div class="ico">⏱️</div><h2>Active Orders</h2></div>
     ${live.map(o=>orderCard(o,true)).join('<div style="height:11px"></div>')}`:""}
   ${past.length?`<div class="sec"><div class="ico">📁</div><h2>Earlier today</h2></div>
     <div class="card" style="padding:4px 16px">
@@ -1176,8 +1525,10 @@ function screenOrders(){
 
 function screenProfile(){
   const st = getStudent();
-  const spent = myOrders().filter(o=>o.status!=="cancelled").reduce((a,o)=>a+o.total,0);
   const initials = st.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() || 'KA';
+  const activeSubs = myActiveSubs();
+  const pastSubs = MY_SUBSCRIPTIONS.filter(s=>s.status!=='active');
+
   return `
   <div class="card" style="text-align:center;padding:24px">
     <div class="avatar" style="width:64px;height:64px;font-size:19px;margin:0 auto 12px">${initials}</div>
@@ -1185,19 +1536,161 @@ function screenProfile(){
     <div class="tiny muted" style="margin-top:3px">UG26 · Tech &amp; Business Management</div>
     <div class="grid2" style="margin-top:18px">
       <div class="stat"><div class="k">Orders today</div><div class="v">${myOrders().length}</div></div>
-      <div class="stat"><div class="k">Spent today</div><div class="v">${rupee(spent)}</div></div>
+      <div class="stat"><div class="k">Active store passes</div><div class="v" style="color:var(--gold)">${activeSubs.length}</div></div>
     </div>
   </div>
-  <div class="sec"><div class="ico">⚙️</div><h2>Preferences</h2></div>
+
+  <div class="sec" style="margin-top:22px">
+    <div class="ico">🎟️</div>
+    <h2>Manage Subscriptions</h2>
+    <span style="font-size:12.5px;color:var(--gold);font-weight:600">${activeSubs.length} Active</span>
+  </div>
+
+  ${activeSubs.length ? `
+    <div>${activeSubs.map(activeSubCard).join("")}</div>
+  ` : `
+    <div class="card" style="text-align:center;padding:20px 16px">
+      <div style="font-size:32px;margin-bottom:6px">🎟️</div>
+      <div style="font-size:15px;font-weight:600">No active meal passes</div>
+      <div class="tiny muted" style="margin:4px 0 14px">Subscribe to weekly or monthly offline canteen passes to save up to 30% and skip counter queues.</div>
+      <button class="btn gold sm" data-act="tab" data-v="subs">Explore Stall Passes</button>
+    </div>
+  `}
+
+  ${pastSubs.length ? `
+    <div class="sec" style="margin-top:18px">
+      <div class="ico">📜</div>
+      <h2>Past Passes</h2>
+      <span class="tiny muted">${pastSubs.length} previous</span>
+    </div>
+    <div class="card" style="padding:6px 14px">
+      ${pastSubs.map(ps => {
+        const v = vendor(ps.vendor_id);
+        return `
+        <div class="row" style="padding:10px 0;border-bottom:1px solid var(--line)">
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:500">${ps.emoji || '🎟️'} ${esc(ps.plan_name)}</div>
+            <div class="tiny muted">${v.emoji} ${esc(v.name)} · Status: <span style="color:${ps.status==='cancelled'?'var(--red)':'var(--muted)'}">${ps.status}</span></div>
+          </div>
+          <button class="btn outline sm" data-act="viewsubdetail" data-v="${ps.plan_id}">Re-activate</button>
+        </div>`;
+      }).join("")}
+    </div>
+  ` : ''}
+
+  <div class="card" style="padding:12px 14px;background:#181508;border:1px solid #433310;margin-top:14px">
+    <div style="font-size:12.5px;font-weight:600;color:var(--gold);display:flex;align-items:center;gap:6px">
+      <span>✨</span> Pass Perks &amp; Guidelines
+    </div>
+    <div class="tiny muted" style="margin-top:4px;line-height:1.4">
+      Flash your digital token at the physical counter. No wallet deduction at pickup. Cancel anytime before renewal.
+    </div>
+  </div>
+
+  <div class="sec" style="margin-top:22px"><div class="ico">⚙️</div><h2>Preferences</h2></div>
   <div class="card" style="padding:4px 16px">
     ${[["Notify me when a pre-booked item is restocked","On"],["Default pickup slot","ASAP"],["Payment","MU Wallet · ₹2,140"],["Dietary preference","Vegetarian first"]]
       .map(([a,b])=>`<div class="row"><div style="flex:1;font-size:14px">${a}</div><div class="tiny" style="color:var(--gold)">${b}</div></div>`).join("")}
   </div>
-  <div class="sec"><div class="ico">🏪</div><h2>Run a stall here?</h2></div>
+
+  <div class="sec" style="margin-top:22px"><div class="ico">🏪</div><h2>Run a stall here?</h2></div>
   <div class="card">
     <div style="font-size:14px;line-height:1.5">Vendors manage live counter stock, sales and incoming orders from the same app — switch views with one click above.</div>
     <button class="btn outline block" style="margin-top:14px" data-act="mode" data-v="admin">Open vendor console</button>
   </div>`;
+}
+
+function screenSubscriptions(){
+  const places = [
+    { key: "Ground Floor, CDS", label: "Ground Floor (CDS)", subtitle: "Main dining hall & hot meals counter", vendors: ["cds", "wrap"] },
+    { key: "2nd Floor Atrium", label: "2nd Floor Atrium", subtitle: "Bakery, croissants & specialty coffee", vendors: ["bake"] },
+    { key: "7th Floor Lounge", label: "7th Floor Lounge", subtitle: "Chai adda, cold-pressed juices & quick bites", vendors: ["chai", "juice"] }
+  ];
+
+  const activePlaces = S.placeFilter === "all" ? places : places.filter(p => p.key === S.placeFilter);
+
+  return `
+  <div class="card hero" style="padding:18px 20px;margin-bottom:16px;text-align:left">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <span class="tag gold" style="margin-bottom:6px">🎟️ Campus Offline Meal Passes</span>
+        <h2 style="font-size:20px;margin:2px 0 4px">Vendor Subscriptions by Place</h2>
+        <div class="tiny muted">Daily lunch, snacks & beverage meal passes provided across all campus stalls</div>
+      </div>
+      <span style="font-size:36px">🍱</span>
+    </div>
+  </div>
+
+  <div class="tiny muted" style="margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.3px">Filter by Campus Place / Floor:</div>
+  <div class="rail" style="margin-bottom:12px">
+    ${[
+      ["all", "All Places"],
+      ["Ground Floor, CDS", "Ground Floor (CDS)"],
+      ["2nd Floor Atrium", "2nd Floor Atrium"],
+      ["7th Floor Lounge", "7th Floor Lounge"]
+    ].map(([k, label]) => `
+      <button class="pill ${S.placeFilter === k ? 'on' : ''}" data-act="placefilter" data-v="${k}">${label}</button>
+    `).join("")}
+  </div>
+
+  <div class="tiny muted" style="margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.3px">Pass Duration:</div>
+  <div class="rail" style="margin-bottom:18px">
+    ${[
+      ["all", "All Passes"],
+      ["monthly", "Monthly Passes (30 Days)"],
+      ["weekly", "Weekly Passes (7 Days)"]
+    ].map(([p, label]) => `
+      <button class="pill ${S.subPeriodFilter === p ? 'on' : ''}" data-act="subperiod" data-v="${p}">${label}</button>
+    `).join("")}
+  </div>
+
+  ${activePlaces.map(place => {
+    const vList = place.vendors.map(vId => vendor(vId)).filter(Boolean);
+    const vendorBlocks = vList.map(vObj => {
+      const vPlans = SUBSCRIPTIONS.filter(s => {
+        const vId = s.vendor_id || s.v;
+        if(vId !== vObj.id) return false;
+        if(s.active === 0) return false;
+        if(S.subPeriodFilter !== 'all' && s.period !== S.subPeriodFilter) return false;
+        return true;
+      });
+      if(!vPlans.length) return '';
+      return `
+      <div style="margin-bottom:20px">
+        <div class="card" style="padding:10px 14px;margin-bottom:10px;background:var(--surface);border-left:3px solid var(--gold);display:flex;justify-content:space-between;align-items:center">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:24px">${vObj.emoji}</span>
+            <div>
+              <div style="font-size:15px;font-weight:600">${esc(vObj.name)}</div>
+              <div class="tiny muted">${esc(vObj.cuisine)} · ⭐ ${vObj.rating} · ${vObj.floor}</div>
+            </div>
+          </div>
+          <span class="tag ${vObj.open ? 'green' : 'orange'}">${vObj.open ? 'Accepting Passes' : 'Opens tomorrow'}</span>
+        </div>
+        <div class="cardgrid">${vPlans.map(subscriptionCard).join("")}</div>
+      </div>`;
+    }).filter(Boolean);
+
+    if(!vendorBlocks.length) return '';
+
+    return `
+    <div style="margin-bottom:26px">
+      <div class="sec" style="margin:20px 0 10px">
+        <div class="ico">📍</div>
+        <div>
+          <h2 style="font-size:16px;margin:0">${place.label}</h2>
+          <div class="tiny muted">${place.subtitle}</div>
+        </div>
+      </div>
+      ${vendorBlocks.join("")}
+    </div>`;
+  }).join("") || `
+    <div class="empty">
+      <div class="e">🎟️</div>
+      No subscription passes available for the selected place and duration.<br>Try selecting "All Places" or "All Passes".
+    </div>
+  `}
+  `;
 }
 
 /* ============================ ADMIN SCREENS ============================ */
@@ -1449,6 +1942,7 @@ function screenAdminOrders(){
 
 function screenStock(){
   const items=ITEMS.filter(i=>i.v===S.adminVendor);
+  const subs=SUBSCRIPTIONS.filter(s=>s.v===S.adminVendor || s.vendor_id===S.adminVendor);
   const demand=id=>ORDERS.filter(o=>o.status==="queued"&&o.lines.some(l=>l.i===id)).reduce((a,o)=>a+o.lines.filter(l=>l.i===id).reduce((x,l)=>x+l.q,0),0);
   return `
   <div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0 14px;gap:8px">
@@ -1484,12 +1978,141 @@ function screenStock(){
           <button class="btn ${i.eta===null?"gold":"ghost"} sm" data-act="eta" data-v="${i.id}" data-d="0">Off menu</button>`
           :`<button class="btn ghost sm" data-act="sellout" data-v="${i.id}">Mark sold out</button>`}
       </div>
-    </div>`;}).join("")}</div>`;
+    </div>`;}).join("")}</div>
+
+  <div class="sec" style="margin-top:24px">
+    <div class="ico">🎟️</div>
+    <h2>Store Subscription Plans</h2>
+    <span style="font-size:12.5px;color:var(--muted)">Offline passes</span>
+  </div>
+  ${subs.length ? `
+    <div class="cardgrid">${subs.map(subAdminCard).join("")}</div>
+  ` : `
+    <div class="card" style="text-align:center;padding:18px">
+      <div class="tiny muted">No active subscription meal plans for this stall yet.</div>
+      <button class="btn gold sm" style="margin-top:10px" data-act="setaddmode" data-v="sub">Create subscription plan</button>
+    </div>
+  `}
+  <button class="btn ghost block" style="margin-top:12px" data-act="setaddmode" data-v="sub">+ New Subscription Plan</button>
+  `;
+}
+
+function screenAdminSubscriptions(){
+  const v = vendor(S.adminVendor);
+  const stallSubs = SUBSCRIPTIONS.filter(s => s.v === S.adminVendor || s.vendor_id === S.adminVendor);
+  const activePlans = stallSubs.filter(s => s.active !== 0);
+  const matchingSubs = MY_SUBSCRIPTIONS.filter(ms => ms.vendor_id === S.adminVendor && ms.status === 'active');
+  const estMonthlyRev = stallSubs.reduce((acc, p) => {
+    const count = matchingSubs.filter(ms => ms.plan_id === p.id).length;
+    return acc + (p.price * (count || 1));
+  }, 0);
+
+  const filter = S.adminSubFilter || "all";
+  const displaySubs = stallSubs.filter(s => {
+    if(filter === "monthly") return s.period === "monthly";
+    if(filter === "weekly") return s.period === "weekly";
+    if(filter === "active") return s.active !== 0;
+    if(filter === "paused") return s.active === 0;
+    return true;
+  });
+
+  return `
+  <div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0 14px;gap:8px">
+    <div>
+      <h2 style="font-size:18px;margin:0">Store Subscriptions</h2>
+      <div class="tiny muted">Manage offline meal passes, prices &amp; subscribers for ${esc(v.name)}</div>
+    </div>
+    <button class="btn gold sm" data-act="newplansheet" style="border-radius:999px;gap:6px;font-weight:600;white-space:nowrap;padding:6px 14px;font-size:12px">
+      + Create Plan
+    </button>
+  </div>
+
+  <div class="grid3" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
+    <div class="stat"><div class="k">Active Plans</div><div class="v">${activePlans.length}</div></div>
+    <div class="stat"><div class="k">Subscribers</div><div class="v" style="color:var(--gold)">${matchingSubs.length}</div></div>
+    <div class="stat"><div class="k">Pass Revenue</div><div class="v" style="color:var(--green)">${rupee(estMonthlyRev)}</div></div>
+  </div>
+
+  <div class="rail" style="margin-bottom:14px">
+    ${[
+      ["all", `All (${stallSubs.length})`],
+      ["active", `Active (${activePlans.length})`],
+      ["paused", `Paused (${stallSubs.length - activePlans.length})`],
+      ["monthly", "Monthly (30d)"],
+      ["weekly", "Weekly (7d)"]
+    ].map(([k, label]) => `
+      <button class="pill ${filter === k ? 'on' : ''}" data-act="adminsubfilter" data-v="${k}">${label}</button>
+    `).join("")}
+  </div>
+
+  ${displaySubs.length ? `
+    <div class="cardgrid">${displaySubs.map(subAdminCard).join("")}</div>
+  ` : `
+    <div class="card" style="text-align:center;padding:24px 16px">
+      <div style="font-size:32px;margin-bottom:6px">🎟️</div>
+      <div style="font-size:15px;font-weight:600">No subscription plans found</div>
+      <div class="tiny muted" style="margin:4px 0 14px">Create recurring meal passes for students to subscribe in advance at your counter.</div>
+      <button class="btn gold sm" data-act="newplansheet">+ Create First Plan</button>
+    </div>
+  `}
+
+  <button class="btn ghost block" style="margin-top:16px" data-act="newplansheet">
+    + Add Another Subscription Plan
+  </button>
+  `;
 }
 
 function screenAdd(){
+  if(S.addMode === 'sub'){
+    return `
+    <div class="seg" style="margin-bottom:16px">
+      <button class="${S.addMode==='item'?'on':''}" data-act="setaddmode" data-v="item">Regular Dish</button>
+      <button class="${S.addMode==='sub'?'on':''}" data-act="setaddmode" data-v="sub">Subscription Plan</button>
+    </div>
+    <div class="tiny muted" style="margin:0 0 16px">Create weekly or monthly offline meal plans for students to subscribe in advance.</div>
+
+    <div class="field"><label>Plan Name</label><input id="f-sub-name" placeholder="e.g. Monthly Unlimited Thali Pass" value="${esc(S.subForm.name)}"></div>
+
+    <div class="field"><label>Duration Period</label>
+      <div class="seg">
+        <button class="${S.subForm.period==='weekly'?'on':''}" data-act="fsubperiod" data-v="weekly">Weekly (7 Days)</button>
+        <button class="${S.subForm.period==='monthly'?'on':''}" data-act="fsubperiod" data-v="monthly">Monthly (30 Days)</button>
+      </div>
+    </div>
+
+    <div class="field"><label>Price (₹)</label><input id="f-sub-price" type="number" inputmode="numeric" placeholder="e.g. 2800" value="${esc(S.subForm.price)}"></div>
+
+    <div class="field"><label>Items &amp; Meals Included Daily (Short details)</label>
+      <input id="f-sub-items" placeholder="e.g. 1 Veg Thali or Rajma Chawal + Salad daily (Mon-Sat)" value="${esc(S.subForm.itemsIncluded)}">
+    </div>
+
+    <div class="field"><label>Store Pickup &amp; Redemption Details</label>
+      <input id="f-sub-desc" placeholder="e.g. Redeem at ground floor CDS counter. Skip the queue." value="${esc(S.subForm.description)}">
+    </div>
+
+    <div class="field"><label>Plan Icon</label>
+      <div class="rail" style="margin:0">${["🍱","🥞","🍵","☕","🌯","🥐","🧁","🍉","🥪","🥗","🍛","🥤"].map(e=>`
+        <button class="pill ${S.subForm.emoji===e?"on":""}" data-act="fsubemoji" data-v="${e}" style="font-size:19px;padding:9px 13px">${e}</button>`).join("")}</div>
+    </div>
+
+    <div class="field"><label>Food type</label>
+      <div class="seg">
+        <button class="${S.subForm.isVeg?"on":""}" data-act="fsubveg" data-v="1">Vegetarian</button>
+        <button class="${S.subForm.isVeg?"":"on"}" data-act="fsubveg" data-v="0">Non-vegetarian</button>
+      </div>
+    </div>
+
+    <button class="btn gold block" style="margin-top:6px" data-act="publishsub">Publish Subscription Plan</button>
+    <div class="tiny muted" style="margin-top:12px;text-align:center">Offered by ${esc(vendor(S.adminVendor).name)} for campus students</div>
+    `;
+  }
+
   return `
-  <div class="tiny muted" style="margin:6px 0 16px">New items go live on the student menu as soon as you publish.</div>
+  <div class="seg" style="margin-bottom:16px">
+    <button class="${S.addMode==='item'?'on':''}" data-act="setaddmode" data-v="item">Regular Dish</button>
+    <button class="${S.addMode==='sub'?'on':''}" data-act="setaddmode" data-v="sub">Subscription Plan</button>
+  </div>
+  <div class="tiny muted" style="margin:0 0 16px">New items go live on the student menu as soon as you publish.</div>
   
   <!-- ITEM PHOTO UPLOAD -->
   <div class="field">
@@ -1542,8 +2165,8 @@ function render(){
   renderHead(); renderNav();
   const s=$("#screen");
   const map = S.mode==="student"
-    ? {home:screenHome,menu:screenMenu,orders:screenOrders,profile:screenProfile}
-    : {sales:screenSales,orders:screenAdminOrders,stock:screenStock,add:screenAdd};
+    ? {home:screenHome,menu:screenMenu,subs:screenSubscriptions,orders:screenOrders,profile:screenProfile}
+    : {sales:screenSales,orders:screenAdminOrders,stock:screenStock,subs:screenAdminSubscriptions,add:screenAdd};
   s.innerHTML = (map[S.mode==="student"?S.tab:S.atab])();
 
   $("#fabslot").innerHTML = (S.mode==="student"&&cartCount())
@@ -1633,6 +2256,211 @@ function vendorSheet(){
         </div>
         <button class="btn ${S.adminVendor===v.id?"gold":"ghost"} sm" data-act="setvendor" data-v="${v.id}">${S.adminVendor===v.id?"Current":"Open"}</button>
       </div>`).join("")}`);
+}
+
+function subDetailSheet(planId){
+  const p = subPlan(planId);
+  if(!p) return;
+  const v = vendor(p.vendor_id || p.v);
+  const isMonthly = p.period === 'monthly';
+  openSheet(`
+    <div style="padding:4px 0">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <div style="width:48px;height:48px;border-radius:14px;background:var(--surface-2);border:1px solid var(--line);display:grid;place-items:center;font-size:26px">
+          ${p.emoji || '🍱'}
+        </div>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="veg ${p.is_veg ? '' : 'non'}"></span>
+            <h3 style="margin:0;font-size:17px">${esc(p.name)}</h3>
+          </div>
+          <div class="tiny muted" style="margin-top:2px">${v.emoji} ${esc(v.name)} · ${esc(v.floor)}</div>
+        </div>
+      </div>
+
+      <div class="card hero" style="padding:14px;margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <div>
+            <div style="font-size:24px;font-weight:700;color:var(--gold)">${rupee(p.price)}</div>
+            <div class="tiny muted">${isMonthly ? 'Full Monthly Subscription (30 days)' : 'Weekly Meal Pass (7 days)'}</div>
+          </div>
+          <span class="tag ${isMonthly ? 'gold' : 'green'}">${isMonthly ? 'Monthly' : 'Weekly'}</span>
+        </div>
+      </div>
+
+      <div style="font-size:12.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px">What's Included:</div>
+      <div class="card" style="padding:12px 14px;margin-bottom:14px;font-size:13.5px;line-height:1.4">
+        ${esc(p.items_included || p.description)}
+      </div>
+
+      <div style="font-size:12.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px">Offline Store Redemption:</div>
+      <div class="card" style="padding:12px 14px;margin-bottom:14px;font-size:13px;color:#C4C4C4;line-height:1.4">
+        📍 <b>Store Counter:</b> ${esc(v.floor)}<br>
+        ⚡ <b>Skip The Line:</b> Show your digital verified pass token at the billing counter to collect your meal daily. No cash or tokens required during pickup.
+      </div>
+
+      <div class="card" style="padding:12px 14px;margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--muted)"><span>Duration</span><span>${isMonthly ? '30 Days' : '7 Days'}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-top:6px"><span>Billing</span><span>One-time prepaid</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-top:6px"><span>Payment source</span><span style="color:var(--gold);font-weight:600">MU Campus Wallet</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:600;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)"><span>Total Payable</span><span style="color:var(--gold)">${rupee(p.price)}</span></div>
+      </div>
+
+      <button class="btn gold block" data-act="confirmsubscribe" data-v="${p.id}">
+        Confirm &amp; Activate Pass (${rupee(p.price)})
+      </button>
+    </div>
+  `);
+}
+
+function subPassSheet(subOrId){
+  const sub = typeof subOrId === 'object' ? subOrId : MY_SUBSCRIPTIONS.find(s=>s.id===subOrId);
+  if(!sub) return;
+  const v = vendor(sub.vendor_id);
+  const st = getStudent();
+  openSheet(`
+    <div style="text-align:center;padding:4px 0 10px">
+      <div style="font-size:42px">${sub.emoji || '🎟️'}</div>
+      <h3 style="margin-top:8px">${esc(sub.plan_name)}</h3>
+      <div class="tiny muted">${esc(v.name)} · ${esc(sub.vendor_floor || v.floor)}</div>
+
+      <div class="card hero" style="padding:16px;margin:16px 0;text-align:center">
+        <span class="tag green" style="margin-bottom:8px"><span class="bulb"></span>VERIFIED ACTIVE PASS</span>
+        <div style="font-size:32px;font-weight:800;letter-spacing:1px;color:var(--gold);margin:4px 0">${sub.id}</div>
+        <div class="tiny" style="color:#C9C9C9">${esc(st.name)} · UG26 Masters Union</div>
+        <div style="margin-top:8px;font-size:11.5px;color:var(--muted)">Show this screen at the offline counter to claim meal</div>
+      </div>
+
+      <div class="card" style="text-align:left;padding:12px 14px;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:600;color:var(--gold);text-transform:uppercase">Daily Meal Allowance:</div>
+        <div style="font-size:13.5px;color:var(--text);margin-top:4px">${esc(sub.items_included || sub.description)}</div>
+      </div>
+
+      <div class="card" style="text-align:left;padding:12px 14px;margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted)">
+          <span>Status</span><span style="color:var(--green);font-weight:600">Active</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-top:6px">
+          <span>Remaining</span><span style="color:var(--text);font-weight:600">${sub.days_left || 7} days left</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-top:6px">
+          <span>Pass Holder</span><span style="color:var(--text)">${esc(st.name)}</span>
+        </div>
+      </div>
+
+      <button class="btn gold block" data-act="closesheet">Done</button>
+    </div>
+  `);
+}
+
+function editPlanSheet(planId){
+  const p = subPlan(planId);
+  if(!p) return;
+  const isMonthly = p.period === 'monthly';
+
+  openSheet(`
+    <h3>Edit Subscription Plan</h3>
+    <div class="tiny muted" style="margin-bottom:14px">Update pass pricing, duration and menu inclusions</div>
+
+    <div class="field"><label>Plan Name</label><input id="edit-sub-name" placeholder="e.g. Monthly Unlimited Thali Pass" value="${esc(p.name)}"></div>
+
+    <div class="field"><label>Duration Period</label>
+      <div class="seg" id="edit-sub-period-seg">
+        <button type="button" class="${isMonthly ? '' : 'on'}" data-act="editplanperiod" data-v="weekly">Weekly (7 Days)</button>
+        <button type="button" class="${isMonthly ? 'on' : ''}" data-act="editplanperiod" data-v="monthly">Monthly (30 Days)</button>
+      </div>
+      <input type="hidden" id="edit-sub-period" value="${p.period || 'monthly'}">
+    </div>
+
+    <div class="row" style="gap:10px">
+      <div class="field" style="flex:1"><label>Price (₹)</label><input type="number" id="edit-sub-price" value="${p.price}"></div>
+      <div class="field" style="width:90px"><label>Emoji</label><input id="edit-sub-emoji" value="${p.emoji || '🍱'}" style="text-align:center;font-size:18px"></div>
+    </div>
+
+    <div class="field"><label>Dietary Type</label>
+      <div class="seg" id="edit-sub-veg-seg">
+        <button type="button" class="${p.is_veg ? 'on' : ''}" data-act="editplanveg" data-v="1">Vegetarian 🟢</button>
+        <button type="button" class="${p.is_veg ? '' : 'on'}" data-act="editplanveg" data-v="0">Non-Veg 🔴</button>
+      </div>
+      <input type="hidden" id="edit-sub-veg" value="${p.is_veg ? 1 : 0}">
+    </div>
+
+    <div class="field"><label>Items Included Daily</label><input id="edit-sub-items" placeholder="e.g. 1 Veg Thali + Salad & Chaas daily" value="${esc(p.items_included || '')}"></div>
+
+    <div class="field"><label>Description &amp; Offline Redemption Note</label><textarea id="edit-sub-desc" rows="2">${esc(p.description || '')}</textarea></div>
+
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button class="btn gold block" style="flex:1" data-act="saveplan" data-v="${p.id}">Save Changes</button>
+      <button class="btn ghost sm" style="color:var(--red)" data-act="deleteplan" data-v="${p.id}" title="Delete Plan">🗑️ Delete</button>
+    </div>
+  `);
+}
+
+function newPlanSheet(){
+  const v = vendor(S.adminVendor);
+  openSheet(`
+    <h3>New Subscription Plan</h3>
+    <div class="tiny muted" style="margin-bottom:14px">Create offline meal pass for ${esc(v.name)}</div>
+
+    <div class="field"><label>Plan Name</label><input id="new-sub-name" placeholder="e.g. Monthly Lunch &amp; Chai Pass"></div>
+
+    <div class="field"><label>Duration Period</label>
+      <div class="seg" id="new-sub-period-seg">
+        <button type="button" class="" data-act="newplanperiod" data-v="weekly">Weekly (7 Days)</button>
+        <button type="button" class="on" data-act="newplanperiod" data-v="monthly">Monthly (30 Days)</button>
+      </div>
+      <input type="hidden" id="new-sub-period" value="monthly">
+    </div>
+
+    <div class="row" style="gap:10px">
+      <div class="field" style="flex:1"><label>Price (₹)</label><input type="number" id="new-sub-price" placeholder="e.g. 2400"></div>
+      <div class="field" style="width:90px"><label>Emoji</label><input id="new-sub-emoji" value="🍱" style="text-align:center;font-size:18px"></div>
+    </div>
+
+    <div class="field"><label>Dietary Type</label>
+      <div class="seg" id="new-sub-veg-seg">
+        <button type="button" class="on" data-act="newplanveg" data-v="1">Vegetarian 🟢</button>
+        <button type="button" class="" data-act="newplanveg" data-v="0">Non-Veg 🔴</button>
+      </div>
+      <input type="hidden" id="new-sub-veg" value="1">
+    </div>
+
+    <div class="field"><label>Items Included Daily</label><input id="new-sub-items" placeholder="e.g. 1 Main Meal + Beverage daily"></div>
+
+    <div class="field"><label>Description &amp; Offline Redemption</label><textarea id="new-sub-desc" rows="2" placeholder="Flash digital token at counter daily. Skip queue."></textarea></div>
+
+    <button class="btn gold block" style="margin-top:16px" data-act="createnewplan">Publish Subscription Plan</button>
+  `);
+}
+
+function subscribersSheet(subscribers, planTitle){
+  const subs = subscribers || [];
+  openSheet(`
+    <h3>${esc(planTitle || 'Store Subscribers')}</h3>
+    <div class="tiny muted" style="margin-bottom:14px">${subs.length} active student passes for this stall</div>
+    ${subs.length ? `
+      <div style="display:flex;flex-direction:column;gap:10px">
+        ${subs.map(s => `
+          <div class="card" style="padding:12px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start">
+              <div>
+                <div style="font-size:14.5px;font-weight:600">${esc(s.student_name || 'Student')}</div>
+                <div class="tiny muted" style="margin-top:2px">ID: ${s.student_id} · Pass: <b>${s.id}</b></div>
+              </div>
+              <span class="tag green">${s.days_left}d left</span>
+            </div>
+            <div class="tiny" style="color:var(--gold);margin-top:6px;font-weight:500">${esc(s.plan_name)}</div>
+          </div>
+        `).join("")}
+      </div>
+    ` : `
+      <div class="empty">
+        <div class="e">👥</div>
+        <div>No active subscribers yet for this plan.</div>
+      </div>
+    `}
+    <button class="btn ghost block" style="margin-top:16px" data-act="closesheet">Close</button>
+  `);
 }
 
 function tokenSheet(ordersList){
@@ -1829,7 +2657,382 @@ document.addEventListener("click", async e => {
     case "vf": S.vendorFilter = (S.vendorFilter===v?"all":v); render(); break;
     case "cf": S.catFilter=v; render(); break;
     case "openvendor": S.vendorFilter=v; S.tab="menu"; S.catFilter="All"; closeSheet(); $("#screen").scrollTop=0; render(); break;
-    case "slot": S.slot=v; cartSheet(); break;
+    
+    case "placefilter":
+      S.placeFilter = v;
+      render();
+      break;
+
+    case "adminsubfilter":
+      S.adminSubFilter = v;
+      render();
+      break;
+
+    case "viewsubs":
+      S.tab = "subs";
+      render();
+      break;
+
+    case "renewsub":{
+      try {
+        await api.renewSubscription(v);
+        await refreshMySubscriptions();
+        toast("🎉 Subscription pass renewed! Validity extended.");
+        render();
+      } catch(err){
+        const s = MY_SUBSCRIPTIONS.find(sub => sub.id === v);
+        if(s){
+          s.days_left = (s.days_left || 0) + (s.period === 'monthly' ? 30 : 7);
+          toast("🎉 Subscription pass renewed! Validity extended.");
+          render();
+        } else {
+          toast(`⚠️ ${err.message}`);
+        }
+      }
+      break;
+    }
+
+    case "editplansheet":
+      editPlanSheet(+v);
+      break;
+
+    case "newplansheet":
+      newPlanSheet();
+      break;
+
+    case "editplanperiod":{
+      const inp = document.getElementById("edit-sub-period");
+      if(inp) inp.value = v;
+      const seg = document.getElementById("edit-sub-period-seg");
+      if(seg){
+        seg.querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === v));
+      }
+      break;
+    }
+
+    case "editplanveg":{
+      const inp = document.getElementById("edit-sub-veg");
+      if(inp) inp.value = v;
+      const seg = document.getElementById("edit-sub-veg-seg");
+      if(seg){
+        seg.querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === v));
+      }
+      break;
+    }
+
+    case "newplanperiod":{
+      const inp = document.getElementById("new-sub-period");
+      if(inp) inp.value = v;
+      const seg = document.getElementById("new-sub-period-seg");
+      if(seg){
+        seg.querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === v));
+      }
+      break;
+    }
+
+    case "newplanveg":{
+      const inp = document.getElementById("new-sub-veg");
+      if(inp) inp.value = v;
+      const seg = document.getElementById("new-sub-veg-seg");
+      if(seg){
+        seg.querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.v === v));
+      }
+      break;
+    }
+
+    case "saveplan":{
+      const planId = +v;
+      const name = (document.getElementById("edit-sub-name")?.value || "").trim();
+      const period = document.getElementById("edit-sub-period")?.value || "monthly";
+      const price = +(document.getElementById("edit-sub-price")?.value || 0);
+      const emoji = (document.getElementById("edit-sub-emoji")?.value || "🍱").trim();
+      const isVeg = +(document.getElementById("edit-sub-veg")?.value || 1);
+      const itemsIncluded = (document.getElementById("edit-sub-items")?.value || "").trim();
+      const desc = (document.getElementById("edit-sub-desc")?.value || "").trim();
+
+      if(!name || !price){
+        toast("Please provide plan name and price.");
+        break;
+      }
+      try {
+        await api.updateSubscription(S.adminVendor, planId, {
+          name, period, price, emoji, isVeg, itemsIncluded, description: desc
+        });
+        const p = SUBSCRIPTIONS.find(s => s.id === planId);
+        if(p){
+          p.name = name;
+          p.period = period;
+          p.price = price;
+          p.emoji = emoji;
+          p.is_veg = isVeg;
+          p.items_included = itemsIncluded;
+          p.description = desc;
+        }
+        await refreshSubscriptions();
+        closeSheet();
+        toast("✓ Subscription plan updated!");
+        render();
+      } catch(err){
+        const p = SUBSCRIPTIONS.find(s => s.id === planId);
+        if(p){
+          p.name = name;
+          p.period = period;
+          p.price = price;
+          p.emoji = emoji;
+          p.is_veg = isVeg;
+          p.items_included = itemsIncluded;
+          p.description = desc;
+          closeSheet();
+          toast("✓ Subscription plan updated!");
+          render();
+        } else {
+          toast(`⚠️ ${err.message}`);
+        }
+      }
+      break;
+    }
+
+    case "createnewplan":{
+      const name = (document.getElementById("new-sub-name")?.value || "").trim();
+      const period = document.getElementById("new-sub-period")?.value || "monthly";
+      const price = +(document.getElementById("new-sub-price")?.value || 0);
+      const emoji = (document.getElementById("new-sub-emoji")?.value || "🍱").trim();
+      const isVeg = +(document.getElementById("new-sub-veg")?.value || 1);
+      const itemsIncluded = (document.getElementById("new-sub-items")?.value || "").trim();
+      const desc = (document.getElementById("new-sub-desc")?.value || "").trim();
+
+      if(!name || !price){
+        toast("Please provide plan name and price.");
+        break;
+      }
+      try {
+        await api.publishSubscription(S.adminVendor, {
+          name, period, price, emoji, isVeg, itemsIncluded, description: desc
+        });
+        await refreshSubscriptions();
+        closeSheet();
+        toast(`✓ Plan "${name}" published!`);
+        render();
+      } catch(err){
+        const newPlan = {
+          id: SUBSCRIPTIONS.length + 1,
+          vendor_id: S.adminVendor,
+          v: S.adminVendor,
+          name,
+          period,
+          price,
+          items_included: itemsIncluded,
+          description: desc,
+          emoji,
+          is_veg: isVeg,
+          active: 1
+        };
+        SUBSCRIPTIONS.push(newPlan);
+        closeSheet();
+        toast(`✓ Plan "${name}" published!`);
+        render();
+      }
+      break;
+    }
+
+    case "deleteplan":{
+      const planId = +v;
+      const p = SUBSCRIPTIONS.find(s => s.id === planId);
+      const planName = p ? p.name : 'Plan';
+      if(!confirm(`Delete subscription plan "${planName}"?`)){
+        break;
+      }
+      try {
+        await api.deleteSubscription(S.adminVendor, planId);
+        SUBSCRIPTIONS = SUBSCRIPTIONS.filter(s => s.id !== planId);
+        closeSheet();
+        toast("Plan deleted successfully.");
+        render();
+      } catch(err){
+        SUBSCRIPTIONS = SUBSCRIPTIONS.filter(s => s.id !== planId);
+        closeSheet();
+        toast("Plan deleted successfully.");
+        render();
+      }
+      break;
+    }
+
+    case "subperiod":
+      S.subPeriodFilter = v;
+      render();
+      break;
+
+    case "viewsubdetail":
+      subDetailSheet(+v);
+      break;
+
+    case "confirmsubscribe":{
+      const planId = +v;
+      try {
+        const createdSub = await api.subscribePlan(planId);
+        await refreshMySubscriptions();
+        await refreshSubscriptions();
+        closeSheet();
+        toast("🎉 Pass activated! Show token at counter to redeem.");
+        subPassSheet(createdSub);
+        render();
+      } catch(err){
+        const p = subPlan(planId);
+        if(p){
+          const localSub = {
+            id: "MU-SUB-" + (100 + MY_SUBSCRIPTIONS.length + 1),
+            student_id: getStudent().id,
+            plan_id: p.id,
+            vendor_id: p.vendor_id || p.v,
+            status: "active",
+            plan_name: p.name,
+            period: p.period,
+            items_included: p.items_included,
+            description: p.description,
+            emoji: p.emoji,
+            vendor_name: vendor(p.vendor_id || p.v).name,
+            vendor_floor: vendor(p.vendor_id || p.v).floor,
+            days_left: p.period === 'monthly' ? 30 : 7,
+            amount_paid: p.price
+          };
+          MY_SUBSCRIPTIONS.unshift(localSub);
+          closeSheet();
+          toast("🎉 Pass activated! Show token at counter to redeem.");
+          subPassSheet(localSub);
+          render();
+        } else {
+          toast(`⚠️ ${err.message}`);
+        }
+      }
+      break;
+    }
+
+    case "viewsubpass":
+      subPassSheet(v);
+      break;
+
+    case "cancelsub":{
+      try {
+        await api.cancelSubscription(v);
+        toast("Subscription pass cancelled.");
+        await refreshMySubscriptions();
+        render();
+      } catch(err){
+        const s = MY_SUBSCRIPTIONS.find(sub => sub.id === v);
+        if(s){
+          s.status = "cancelled";
+          toast("Subscription pass cancelled.");
+          render();
+        } else {
+          toast(`⚠️ ${err.message}`);
+        }
+      }
+      break;
+    }
+
+    case "setaddmode":
+      S.addMode = v;
+      render();
+      break;
+
+    case "fsubperiod":
+      S.subForm.period = v;
+      render();
+      break;
+
+    case "fsubveg":
+      S.subForm.isVeg = +v;
+      render();
+      break;
+
+    case "fsubemoji":
+      S.subForm.emoji = v;
+      render();
+      break;
+
+    case "publishsub":{
+      const name = (document.getElementById("f-sub-name")?.value || "").trim();
+      const price = +(document.getElementById("f-sub-price")?.value || 0);
+      const itemsIncluded = (document.getElementById("f-sub-items")?.value || "").trim();
+      const desc = (document.getElementById("f-sub-desc")?.value || "").trim();
+      if(!name || !price){
+        toast("Please provide plan name and price.");
+        break;
+      }
+      try {
+        await api.publishSubscription(S.adminVendor, {
+          name,
+          period: S.subForm.period,
+          price,
+          description: desc,
+          itemsIncluded: itemsIncluded,
+          isVeg: S.subForm.isVeg,
+          emoji: S.subForm.emoji || "🍱"
+        });
+        S.subForm = { name: "", period: "monthly", price: "", description: "", itemsIncluded: "", isVeg: 1, emoji: "🍱" };
+        S.atab = "stock";
+        localStorage.setItem('mu_atab', 'stock');
+        await refreshSubscriptions();
+        toast(`Subscription plan "${name}" published!`);
+        render();
+      } catch(err){
+        const newPlan = {
+          id: SUBSCRIPTIONS.length + 1,
+          v: S.adminVendor,
+          vendor_id: S.adminVendor,
+          name,
+          period: S.subForm.period,
+          price,
+          description: desc,
+          items_included: itemsIncluded,
+          is_veg: S.subForm.isVeg,
+          emoji: S.subForm.emoji || "🍱",
+          active: 1
+        };
+        SUBSCRIPTIONS.push(newPlan);
+        S.subForm = { name: "", period: "monthly", price: "", description: "", itemsIncluded: "", isVeg: 1, emoji: "🍱" };
+        S.atab = "stock";
+        localStorage.setItem('mu_atab', 'stock');
+        toast(`Subscription plan "${name}" published!`);
+        render();
+      }
+      break;
+    }
+
+    case "togglesub":{
+      const planId = +v;
+      try {
+        const updated = await api.toggleSubscription(S.adminVendor, planId);
+        const p = SUBSCRIPTIONS.find(s => s.id === planId);
+        if(p) p.active = updated.active;
+        toast(`Plan ${updated.active ? 'resumed' : 'paused'}.`);
+        render();
+      } catch(err){
+        const p = SUBSCRIPTIONS.find(s => s.id === planId);
+        if(p){
+          p.active = p.active ? 0 : 1;
+          toast(`Plan ${p.active ? 'resumed' : 'paused'}.`);
+          render();
+        } else {
+          toast(`⚠️ ${err.message}`);
+        }
+      }
+      break;
+    }
+
+    case "viewsubscribers":{
+      const planId = +v;
+      const p = SUBSCRIPTIONS.find(s => s.id === planId);
+      try {
+        const subscribers = await api.getVendorSubscribers(S.adminVendor);
+        const filtered = planId ? subscribers.filter(s => s.plan_id === planId) : subscribers;
+        subscribersSheet(filtered, p ? p.name : 'Stall Subscribers');
+      } catch(err){
+        subscribersSheet([], p ? p.name : 'Stall Subscribers');
+      }
+      break;
+    }
+case "slot": S.slot=v; cartSheet(); break;
 
     case "setcustomtime":{
       const picker = document.getElementById("custom-slot-picker");
@@ -2273,12 +3476,48 @@ async function refreshSales(date){
   }
 }
 
+async function refreshSubscriptions(){
+  try {
+    const fetched = await api.getSubscriptions();
+    if(fetched && fetched.length) {
+      SUBSCRIPTIONS = fetched.map(s => ({
+        ...s,
+        v: s.vendor_id || s.v,
+        active: Boolean(s.active)
+      }));
+      try { localStorage.setItem('mu_cached_subscriptions', JSON.stringify(SUBSCRIPTIONS)); } catch(e){}
+    }
+  } catch(e){
+    try {
+      const cached = localStorage.getItem('mu_cached_subscriptions');
+      if (cached) SUBSCRIPTIONS = JSON.parse(cached);
+    } catch(err){}
+  }
+}
+
+async function refreshMySubscriptions(){
+  try {
+    const fetched = await api.getMySubscriptions();
+    if(fetched) {
+      MY_SUBSCRIPTIONS = fetched;
+      try { localStorage.setItem('mu_cached_my_subscriptions', JSON.stringify(MY_SUBSCRIPTIONS)); } catch(e){}
+    }
+  } catch(e){
+    try {
+      const cached = localStorage.getItem('mu_cached_my_subscriptions');
+      if (cached) MY_SUBSCRIPTIONS = JSON.parse(cached);
+    } catch(err){}
+  }
+}
+
 async function refreshAllData(){
   try {
     const tasks = [
       api.getVendors().then(v => { if(v && v.length) { VENDORS.length = 0; VENDORS.push(...v); } }),
       refreshItems(),
-      refreshOrders()
+      refreshOrders(),
+      refreshSubscriptions(),
+      refreshMySubscriptions()
     ];
     if (S.mode === 'admin') {
       tasks.push(refreshSales(S.salesDate));

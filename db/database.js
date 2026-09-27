@@ -148,6 +148,38 @@ async function initSchema() {
     )
   `);
 
+  // vendor_subscriptions table
+  await run(`
+    CREATE TABLE IF NOT EXISTS vendor_subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      vendor_id TEXT NOT NULL REFERENCES vendors(id),
+      name TEXT NOT NULL,
+      period TEXT NOT NULL CHECK(period IN ('weekly', 'monthly')),
+      price INTEGER NOT NULL,
+      description TEXT NOT NULL,
+      items_included TEXT NULL,
+      is_veg INTEGER NOT NULL DEFAULT 1,
+      emoji TEXT NOT NULL DEFAULT '🍱',
+      active INTEGER NOT NULL DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // student_subscriptions table
+  await run(`
+    CREATE TABLE IF NOT EXISTS student_subscriptions (
+      id TEXT PRIMARY KEY,
+      student_id TEXT NOT NULL REFERENCES students(id),
+      plan_id INTEGER NOT NULL REFERENCES vendor_subscriptions(id),
+      vendor_id TEXT NOT NULL REFERENCES vendors(id),
+      status TEXT NOT NULL CHECK(status IN ('active', 'paused', 'expired', 'cancelled')) DEFAULT 'active',
+      start_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+      end_date DATETIME NOT NULL,
+      amount_paid INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   // Indexes for high performance
   await run(`CREATE INDEX IF NOT EXISTS idx_items_vendor ON menu_items(vendor_id)`);
   await run(`CREATE INDEX IF NOT EXISTS idx_orders_student ON orders(student_id)`);
@@ -156,6 +188,9 @@ async function initSchema() {
   await run(`CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status)`);
   await run(`CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id)`);
   await run(`CREATE INDEX IF NOT EXISTS idx_ledger_item ON stock_ledger(menu_item_id)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_sub_vendor ON vendor_subscriptions(vendor_id)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_stud_sub ON student_subscriptions(student_id)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_vendor_sub_active ON student_subscriptions(vendor_id, status)`);
 }
 
 module.exports = {

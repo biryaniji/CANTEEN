@@ -38,6 +38,108 @@ const STUDENTS = [
   { id: "student_rohan", name: "Rohan B." }
 ];
 
+const SUBSCRIPTIONS = [
+  {
+    id: 1,
+    v: "cds",
+    name: "Monthly Unlimited Thali Pass",
+    period: "monthly",
+    price: 2800,
+    is_veg: 1,
+    emoji: "🍱",
+    items_included: "1 Veg Thali or Rajma Chawal + Salad & Chaas daily (Mon-Sat)",
+    description: "Daily wholesome offline lunch at CDS Canteen. Flash your pass at the billing counter to skip the queue."
+  },
+  {
+    id: 2,
+    v: "cds",
+    name: "Weekly Lunch & Dosa Pass",
+    period: "weekly",
+    price: 720,
+    is_veg: 1,
+    emoji: "🥞",
+    items_included: "Choice of Masala Dosa, Curd Rice, or Rajma Chawal daily",
+    description: "7-day hot lunch meal plan. Valid Mon-Sun at CDS ground floor counter."
+  },
+  {
+    id: 3,
+    v: "chai",
+    name: "Monthly Chai Adda Club",
+    period: "monthly",
+    price: 899,
+    is_veg: 1,
+    emoji: "🍵",
+    items_included: "2 Cutting Masala Chais + 1 Hot Samosa daily",
+    description: "Daily study fuel for the 7th floor lounge. Flash your active pass at the counter for instant chai."
+  },
+  {
+    id: 4,
+    v: "chai",
+    name: "Weekly Coffee & Maggi Craver",
+    period: "weekly",
+    price: 360,
+    is_veg: 1,
+    emoji: "☕",
+    items_included: "1 Filter Coffee + 1 Piping Hot Maggi daily",
+    description: "7-day quick evening snack pass between lectures and committee meetings."
+  },
+  {
+    id: 5,
+    v: "wrap",
+    name: "Monthly Fitness Wrap Plan",
+    period: "monthly",
+    price: 3400,
+    is_veg: 0,
+    emoji: "🌯",
+    items_included: "1 Paneer Tikka or Chicken Shawarma Wrap daily",
+    description: "High-protein campus lunch subscription. Freshly rolled and grilled at the CDS wrap counter."
+  },
+  {
+    id: 6,
+    v: "wrap",
+    name: "Weekly Wrap Rush",
+    period: "weekly",
+    price: 890,
+    is_veg: 1,
+    emoji: "🥙",
+    items_included: "1 Gourmet Wrap (Veg or Non-Veg) daily",
+    description: "7-day grab-and-go wrap subscription. Fast-track pickup at the store counter."
+  },
+  {
+    id: 7,
+    v: "bake",
+    name: "Weekly Morning Brew & Croissant",
+    period: "weekly",
+    price: 650,
+    is_veg: 1,
+    emoji: "🥐",
+    items_included: "1 Butter or Choco Croissant + 1 Americano daily",
+    description: "Start every morning right at the 2nd Floor Atrium before 10 AM lectures."
+  },
+  {
+    id: 8,
+    v: "bake",
+    name: "Monthly Sweet Tooth Box",
+    period: "monthly",
+    price: 1800,
+    is_veg: 1,
+    emoji: "🧁",
+    items_included: "1 Gourmet Muffin or Fudge Brownie Mon-Fri",
+    description: "Afternoon sweet break Mon-Fri for the entire month at Bake House."
+  },
+  {
+    id: 9,
+    v: "juice",
+    name: "Monthly Cold-Pressed Juice Plan",
+    period: "monthly",
+    price: 1750,
+    is_veg: 1,
+    emoji: "🍉",
+    items_included: "1 Fresh Watermelon or Seasonal Juice or Cold Coffee daily",
+    description: "Freshly squeezed vitamins and energy. Redeem at 7th floor Juice Bar offline counter."
+  }
+];
+
 function generateSeedOrders() {
   const now = new Date();
   const fmt = (d, h = 12, m = 0) => {
@@ -84,7 +186,42 @@ async function seed(force = false) {
 
   const existingVendors = await db.all('SELECT id FROM vendors');
   if (existingVendors.length > 0 && !force) {
-    console.log('Database already seeded. Skipping.');
+    const existingSubs = await db.all('SELECT id FROM vendor_subscriptions');
+    if (existingSubs.length === 0) {
+      console.log('Seeding missing subscription plans...');
+      for (const sub of SUBSCRIPTIONS) {
+        await db.run(
+          `INSERT OR REPLACE INTO vendor_subscriptions 
+           (id, vendor_id, name, period, price, is_veg, emoji, items_included, description, active)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+          [sub.id, sub.v, sub.name, sub.period, sub.price, sub.is_veg, sub.emoji, sub.items_included, sub.description]
+        );
+      }
+
+      const now = new Date();
+      const subEndDateKabir = new Date(now.getTime() + 24 * 24 * 60 * 60 * 1000).toISOString();
+      const subStartDateKabir = new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString();
+
+      await db.run(
+        `INSERT OR REPLACE INTO student_subscriptions
+         (id, student_id, plan_id, vendor_id, status, start_date, end_date, amount_paid)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        ['MU-SUB-101', 'student_kabir', 3, 'chai', 'active', subStartDateKabir, subEndDateKabir, 899]
+      );
+
+      const subEndDateDev = new Date(now.getTime() + 19 * 24 * 60 * 60 * 1000).toISOString();
+      const subStartDateDev = new Date(now.getTime() - 11 * 24 * 60 * 60 * 1000).toISOString();
+
+      await db.run(
+        `INSERT OR REPLACE INTO student_subscriptions
+         (id, student_id, plan_id, vendor_id, status, start_date, end_date, amount_paid)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        ['MU-SUB-102', 'student_dev', 1, 'cds', 'active', subStartDateDev, subEndDateDev, 2800]
+      );
+      console.log('Subscriptions seeded successfully!');
+    } else {
+      console.log('Database already seeded. Skipping.');
+    }
     return;
   }
 
@@ -154,7 +291,39 @@ async function seed(force = false) {
     }
   }
 
-  console.log(`Seeding complete! 5 vendors, 18 items, 5 students, ${ordersToSeed.length} orders loaded.`);
+  // Seed vendor subscriptions
+  for (const sub of SUBSCRIPTIONS) {
+    await db.run(
+      `INSERT OR REPLACE INTO vendor_subscriptions 
+       (id, vendor_id, name, period, price, is_veg, emoji, items_included, description, active)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+      [sub.id, sub.v, sub.name, sub.period, sub.price, sub.is_veg, sub.emoji, sub.items_included, sub.description]
+    );
+  }
+
+  // Seed student subscriptions (Kabir and Dev)
+  const now = new Date();
+  const subEndDateKabir = new Date(now.getTime() + 24 * 24 * 60 * 60 * 1000).toISOString();
+  const subStartDateKabir = new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString();
+
+  await db.run(
+    `INSERT OR REPLACE INTO student_subscriptions
+     (id, student_id, plan_id, vendor_id, status, start_date, end_date, amount_paid)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    ['MU-SUB-101', 'student_kabir', 3, 'chai', 'active', subStartDateKabir, subEndDateKabir, 899]
+  );
+
+  const subEndDateDev = new Date(now.getTime() + 19 * 24 * 60 * 60 * 1000).toISOString();
+  const subStartDateDev = new Date(now.getTime() - 11 * 24 * 60 * 60 * 1000).toISOString();
+
+  await db.run(
+    `INSERT OR REPLACE INTO student_subscriptions
+     (id, student_id, plan_id, vendor_id, status, start_date, end_date, amount_paid)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    ['MU-SUB-102', 'student_dev', 1, 'cds', 'active', subStartDateDev, subEndDateDev, 2800]
+  );
+
+  console.log(`Seeding complete! 5 vendors, 18 items, ${SUBSCRIPTIONS.length} subscriptions, 5 students, ${ordersToSeed.length} orders loaded.`);
 }
 
 if (require.main === module) {

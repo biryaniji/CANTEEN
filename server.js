@@ -7,6 +7,7 @@ const db = require('./db/database');
 const wsService = require('./services/wsService');
 const orderService = require('./services/orderService');
 const stockService = require('./services/stockService');
+const subscriptionService = require('./services/subscriptionService');
 const ledger = require('./db/ledger');
 
 const app = express();
@@ -371,6 +372,168 @@ app.get('/api/vendors/:id/ledger', async (req, res) => {
   }
 });
 
+// ---------------- SUBSCRIPTION ROUTES ----------------
+
+// GET /api/subscriptions (all active plans, optionally filtered by vendorId or period)
+app.get('/api/subscriptions', async (req, res) => {
+  try {
+    const { vendorId, period, all } = req.query;
+    const plans = await subscriptionService.getAllPlans({
+      vendorId,
+      period,
+      activeOnly: all !== 'true'
+    });
+    res.json({ success: true, subscriptions: plans, plans });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/vendors/:id/subscriptions
+app.get('/api/vendors/:id/subscriptions', async (req, res) => {
+  try {
+    const vendorId = req.params.id;
+    const plans = await subscriptionService.getAllPlans({ vendorId, activeOnly: false });
+    res.json({ success: true, subscriptions: plans, plans });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/vendors/:id/subscriptions (Vendor creates a plan)
+app.post('/api/vendors/:id/subscriptions', async (req, res) => {
+  try {
+    const vendorId = req.params.id;
+    const { name, period, price, description, itemsIncluded, items_included, isVeg, is_veg, emoji } = req.body;
+    const plan = await subscriptionService.createPlan(vendorId, {
+      name,
+      period,
+      price,
+      description,
+      itemsIncluded: itemsIncluded || items_included,
+      isVeg: isVeg !== undefined ? isVeg : (is_veg !== undefined ? is_veg : 1),
+      emoji
+    });
+    res.status(201).json({ success: true, plan });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// PATCH /api/vendors/:id/subscriptions/:planId/toggle
+app.patch('/api/vendors/:id/subscriptions/:planId/toggle', async (req, res) => {
+  try {
+    const vendorId = req.params.id;
+    const planId = parseInt(req.params.planId, 10);
+    const plan = await subscriptionService.togglePlan(planId, vendorId);
+    res.json({ success: true, plan });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// PUT /api/vendors/:id/subscriptions/:planId (Vendor updates a plan)
+app.put('/api/vendors/:id/subscriptions/:planId', async (req, res) => {
+  try {
+    const vendorId = req.params.id;
+    const planId = parseInt(req.params.planId, 10);
+    const { name, period, price, description, itemsIncluded, items_included, isVeg, is_veg, emoji } = req.body;
+    const plan = await subscriptionService.updatePlan(planId, vendorId, {
+      name,
+      period,
+      price,
+      description,
+      itemsIncluded: itemsIncluded || items_included,
+      isVeg: isVeg !== undefined ? isVeg : (is_veg !== undefined ? is_veg : undefined),
+      emoji
+    });
+    res.json({ success: true, plan });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// DELETE /api/vendors/:id/subscriptions/:planId (Vendor deletes/deactivates a plan)
+app.delete('/api/vendors/:id/subscriptions/:planId', async (req, res) => {
+  try {
+    const vendorId = req.params.id;
+    const planId = parseInt(req.params.planId, 10);
+    const result = await subscriptionService.deletePlan(planId, vendorId);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/vendors/:id/subscribers (Vendor views active subscribers)
+app.get('/api/vendors/:id/subscribers', async (req, res) => {
+  try {
+    const vendorId = req.params.id;
+    const subscribers = await subscriptionService.getVendorSubscribers(vendorId);
+    res.json({ success: true, subscribers });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/subscriptions/subscribe (Student subscribes to a plan)
+app.post('/api/subscriptions/subscribe', async (req, res) => {
+  try {
+    const studentId = req.headers['x-student-id'] || req.body.studentId || 'student_kabir';
+    const studentName = req.body.studentName || 'Kabir Ahuja';
+    const { planId } = req.body;
+
+    if (!planId) {
+      return res.status(400).json({ success: false, error: 'planId is required' });
+    }
+
+    const subscription = await subscriptionService.subscribeStudent({
+      studentId,
+      studentName,
+      planId: parseInt(planId, 10)
+    });
+
+    res.json({ success: true, subscription });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/subscriptions/mine (Student's active & past subscriptions)
+app.get('/api/subscriptions/mine', async (req, res) => {
+  try {
+    const studentId = req.headers['x-student-id'] || req.query.studentId || 'student_kabir';
+    const subscriptions = await subscriptionService.getStudentSubscriptions(studentId);
+    res.json({ success: true, subscriptions });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// PATCH /api/subscriptions/mine/:id/cancel
+app.patch('/api/subscriptions/mine/:id/cancel', async (req, res) => {
+  try {
+    const studentId = req.headers['x-student-id'] || req.body.studentId || 'student_kabir';
+    const subId = req.params.id;
+    const subscription = await subscriptionService.cancelSubscription(subId, studentId);
+    res.json({ success: true, subscription });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/subscriptions/mine/:id/renew (Student renews an active or past pass)
+app.post('/api/subscriptions/mine/:id/renew', async (req, res) => {
+  try {
+    const studentId = req.headers['x-student-id'] || req.body.studentId || 'student_kabir';
+    const subId = req.params.id;
+    const subscription = await subscriptionService.renewSubscription(subId, studentId);
+    res.json({ success: true, subscription });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
 // Serve direct mu-canteen.html if requested
 app.get('/mu-canteen.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'mu-canteen.html'));
@@ -395,6 +558,13 @@ async function start() {
   if (!vendors.length) {
     const { seed } = require('./db/seed');
     await seed();
+  } else {
+    // Check if subscriptions need initial seed
+    const subs = await db.all('SELECT id FROM vendor_subscriptions');
+    if (!subs.length) {
+      const { seed } = require('./db/seed');
+      await seed();
+    }
   }
 
   server.listen(PORT, () => {
