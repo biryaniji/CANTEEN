@@ -229,6 +229,8 @@ async function seed(force = false) {
 
   // Clear existing data if forced
   if (force) {
+    await db.run('DELETE FROM student_subscriptions');
+    await db.run('DELETE FROM vendor_subscriptions');
     await db.run('DELETE FROM stock_ledger');
     await db.run('DELETE FROM order_items');
     await db.run('DELETE FROM orders');

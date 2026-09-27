@@ -7,7 +7,10 @@
     "start": "node server.js",
     "seed": "node db/seed.js",
     "seed:force": "node db/seed.js --force",
-    "test": "node test/concurrency.test.js"
+    "test": "node test/concurrency.test.js && node test/subscription.test.js",
+    "test:concurrency": "node test/concurrency.test.js",
+    "test:subs": "node test/subscription.test.js",
+    "test:e2e": "node test/e2e.test.js"
   },
   "keywords": [],
   "author": "",

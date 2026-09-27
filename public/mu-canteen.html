@@ -8,7 +8,7 @@
 <title>Canteen · Masters Union</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#080808;
@@ -38,8 +38,11 @@ body{
   margin:0;
   background:var(--stage);
   color:var(--text);
-  font-family:"Outfit","Segoe UI",system-ui,-apple-system,sans-serif;
+  font-family:"Poppins","Segoe UI",system-ui,-apple-system,sans-serif;
   -webkit-font-smoothing:antialiased;
+}
+body,.wrap,.phone,.modeswitch,.screen,.nav,.sheet,.toast,button,input,select{
+  font-family:"Poppins","Segoe UI",system-ui,-apple-system,sans-serif;
 }
 button{font-family:inherit;color:inherit;border:none;background:none;cursor:pointer}
 input,select{font-family:inherit}
@@ -93,19 +96,22 @@ input,select{font-family:inherit}
 
 .rail{display:flex;gap:9px;overflow-x:auto;padding:2px 18px 2px;margin:0 -18px;scrollbar-width:none}
 .rail::-webkit-scrollbar{display:none}
-.pill{flex:none;padding:10px 16px;border-radius:999px;background:var(--surface-2);color:#B4B4B4;font-size:13.5px;font-weight:500;white-space:nowrap;display:flex;align-items:center;gap:7px;border:1px solid transparent}
-.pill.on{background:var(--gold);color:#0A0A0A;font-weight:600}
+.pill{flex:none;padding:11px 22px;border-radius:999px;background:#171719;color:#d0d0d0;font-size:14px;font-weight:500;white-space:nowrap;display:flex;align-items:center;gap:7px;border:1px solid #38383b}
+.pill.on{background:var(--gold);color:#0A0A0A;border-color:var(--gold);font-weight:600}
 .pill .n{background:rgba(0,0,0,.28);color:inherit;border-radius:999px;font-size:11px;padding:1px 7px;font-weight:600}
 .pill.on .n{background:rgba(0,0,0,.18)}
 
 .chip{display:inline-flex;align-items:center;gap:6px;background:var(--surface-2);border-radius:var(--r-sm);padding:8px 11px;font-size:12.5px;color:#C6C6C6}
-.tag{display:inline-flex;align-items:center;gap:6px;border-radius:8px;padding:5px 9px;font-size:11px;font-weight:600;letter-spacing:.2px}
+.tag{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4.5px 10px;font-family:inherit;font-size:11.5px;font-weight:600;letter-spacing:.3px;line-height:1.15;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:all .2s ease}
 .tag.gold{background:var(--gold-wash);color:var(--gold);border:1px solid #4A3B12}
-.tag.green{background:#0F2A1C;color:var(--green)}
-.tag.red{background:#2A1212;color:var(--red)}
-.tag.orange{background:#2A1E0C;color:var(--orange)}
-.tag.grey{background:var(--surface-2);color:var(--muted)}
-.tag .bulb{width:6px;height:6px;border-radius:50%;background:currentColor}
+.tag.green{background:linear-gradient(135deg,rgba(34,197,94,.15) 0%,rgba(20,83,45,.25) 100%);color:#4ade80;border:1px solid rgba(74,222,128,.35);box-shadow:0 1px 4px rgba(16,45,26,.45)}
+.tag.red{background:linear-gradient(135deg,rgba(239,68,68,.14) 0%,rgba(127,29,29,.24) 100%);color:#f87171;border:1px solid rgba(248,113,113,.32);box-shadow:0 1px 4px rgba(45,16,16,.45)}
+.tag.orange{background:linear-gradient(135deg,rgba(251,146,60,.15) 0%,rgba(124,45,18,.25) 100%);color:#fb923c;border:1px solid rgba(251,146,60,.38);box-shadow:0 1px 4px rgba(45,25,12,.45)}
+.tag.grey{background:var(--surface-2);color:var(--muted);border:1px solid rgba(255,255,255,.06)}
+.tag .bulb{width:6.5px;height:6.5px;border-radius:50%;background:currentColor;flex-shrink:0}
+.tag.green .bulb{box-shadow:0 0 6px rgba(74,222,128,.7)}
+.tag.orange .bulb{box-shadow:0 0 6px rgba(251,146,60,.7)}
+.tag.red .bulb{box-shadow:0 0 6px rgba(248,113,113,.65)}
 
 .btn{border-radius:12px;padding:12px 16px;font-size:14px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .12s ease,opacity .12s ease}
 .btn:active{transform:scale(.97)}
@@ -121,25 +127,64 @@ input,select{font-family:inherit}
 .tiny{font-size:11.5px}
 
 /* ---------- food item ---------- */
-.item{display:flex;gap:13px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:13px;margin-bottom:11px}
-.item.out{opacity:.72}
-.thumb{width:56px;height:56px;border-radius:var(--r-md);display:grid;place-items:center;font-size:27px;background:#221C0C;flex:none;border:1px solid #33290F}
-.item .body{flex:1;min-width:0}
-.item .name{font-size:15px;font-weight:600;letter-spacing:-.1px;display:flex;align-items:center;gap:6px}
+.itemgrid{display:block}
+.item{
+  display:flex;
+  min-height:146px;
+  gap:16px;
+  align-items:center;
+  background:#141414;
+  border:1px solid #303030;
+  border-radius:24px;
+  padding:12px;
+  margin-bottom:14px;
+  transition:border-color .15s ease,box-shadow .15s ease,background .15s ease;
+}
+.item:hover{border-color:#3e3e3e;box-shadow:0 4px 18px rgba(0,0,0,.35)}
+.item.out{opacity:.78}
+.item .thumb{
+  width:122px;
+  height:122px;
+  border-radius:20px;
+  overflow:hidden;
+  background:#21180d;
+  border:1px solid #3a332b;
+  flex:none;
+}
+.item .thumb .pic{width:100%;height:100%;display:block;object-fit:cover}
+.thumb{width:56px;height:56px;border-radius:var(--r-md);display:grid;place-items:center;font-size:27px;background:#221C0C;flex:none;border:1px solid #33290F;overflow:hidden}
+.thumb .pic{width:100%;height:100%;display:block;object-fit:cover}
+.item .body{flex:1;min-width:0;padding:2px 0}
+.item .name{font-size:17px;font-weight:700;letter-spacing:-.25px;line-height:1.2;gap:6px;display:flex;align-items:center}
 .veg{width:12px;height:12px;border:1.4px solid var(--green);border-radius:3px;display:grid;place-items:center;flex:none}
 .veg::after{content:"";width:5px;height:5px;border-radius:50%;background:var(--green)}
 .veg.non{border-color:var(--red)}
 .veg.non::after{background:var(--red)}
 .item .meta{font-size:12px;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
-.item .right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex:none}
+.item .meta.vendor-meta{font-size:13px;color:#b8b8b8;margin-top:9px;gap:6px}
+.availability{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:13.5px;font-weight:500;line-height:1.2}
+.availability-dot{width:9px;height:9px;border-radius:50%;background:var(--green);flex:none}
+.availability.green{color:#68e99a}
+.availability.orange{color:#ffb45c}
+.availability.orange .availability-dot{background:var(--orange)}
+.availability.red{color:#ff7777}
+.availability.red .availability-dot{background:var(--red)}
+.item .right{display:flex;flex-direction:column;align-items:flex-end;gap:18px;min-width:108px;flex:none}
+.item .price{font-size:20px;font-weight:700;letter-spacing:-.3px}
 .price{font-size:15px;font-weight:600}
+.item .btn.gold.sm{min-width:108px;height:48px;padding:0 22px;border-radius:999px;font-size:16px;font-weight:600;box-shadow:none}
+.item .btn.outline.sm,.item .btn.ghost.sm{min-width:108px;height:48px;border-radius:999px;font-size:14px}
+.item .qty{height:48px;min-width:108px;background:var(--gold);border-radius:999px;box-shadow:none;border:none;display:flex;align-items:center}
+.item .qty button{width:36px;height:46px;color:#0A0A0A;font-size:20px;font-weight:600;display:grid;place-items:center}
+.item .qty span{min-width:36px;color:#0A0A0A;font-size:16px;font-weight:700;text-align:center}
 .qty{display:flex;align-items:center;gap:0;background:var(--gold);border-radius:999px;overflow:hidden;box-shadow:none;border:none}
 .qty button{width:28px;height:26px;color:#0A0A0A;font-size:17px;font-weight:600;display:grid;place-items:center}
 .qty span{min-width:20px;text-align:center;color:#0A0A0A;font-weight:700;font-size:13.5px}
+.item .stockbar{display:none}
 
-.stockbar{height:4px;border-radius:99px;background:#242424;overflow:hidden;margin-top:9px}
-.stockbar i{display:block;height:100%;border-radius:99px;background:var(--gold)}
-.stockbar i.low{background:var(--orange)}
+.stockbar{height:4.5px;border-radius:99px;background:#202022;overflow:hidden;margin-top:9px}
+.stockbar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#22c55e,#4ade80)}
+.stockbar i.low{background:linear-gradient(90deg,#f59e0b,#fb923c)}
 
 /* ---------- order timeline ---------- */
 .track{display:flex;gap:0;margin-top:14px}
@@ -153,8 +198,8 @@ input,select{font-family:inherit}
 .step:first-child::before{display:none}
 
 /* ---------- search ---------- */
-.search{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-top:4px}
-.search input{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:14px}
+.search{display:flex;align-items:center;gap:10px;background:#19191b;border:1px solid #3a3a3d;border-radius:999px;padding:14px 17px;margin-top:4px}
+.search input{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:15px}
 .search input::placeholder{color:#6A6A6A}
 
 /* ---------- admin ---------- */
@@ -177,11 +222,27 @@ input,select{font-family:inherit}
 
 .field{margin-bottom:13px}
 .field label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:7px}
-.field input,.field select{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px 14px;color:var(--text);font-size:14px;outline:none}
-.field input:focus,.field select:focus{border-color:var(--gold-dim)}
+.field input,.field select,.field textarea{width:100%;box-sizing:border-box;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px 14px;color:var(--text);font-family:inherit;font-size:14px;outline:none;transition:border-color .15s ease,box-shadow .15s ease;display:block}
+.field textarea{min-height:96px;line-height:1.5;resize:vertical}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--gold-dim);box-shadow:0 0 0 2px rgba(245,197,66,.16)}
+.field textarea::placeholder,.field input::placeholder{color:#6A6A6A;font-family:inherit}
 .seg{display:flex;gap:8px}
 .seg button{flex:1;padding:12px;border-radius:12px;background:var(--surface);border:1px solid var(--line);font-size:13.5px;color:var(--muted)}
 .seg button.on{background:var(--gold-wash);border-color:var(--gold-dim);color:var(--gold);font-weight:600}
+
+/* ---------- status-specific card variants ---------- */
+.card.card-restock-banner{background:linear-gradient(180deg,#19140e 0%,#13110d 100%);border:1px solid rgba(251,146,60,.28)}
+.card.card-restock-banner .restock-time{color:#fb923c;font-weight:600}
+.card.card-restock-banner .btn-prebook{border-color:rgba(251,146,60,.48);color:#fb923c;background:rgba(251,146,60,.09);font-weight:600}
+.card.card-restock-banner .btn-prebook:hover{background:rgba(251,146,60,.18);border-color:#fb923c}
+
+.card-stock-available{background:#141414;border:1px solid #272727}
+.card-stock-low{background:linear-gradient(180deg,#17140f 0%,#13110d 100%);border:1px solid rgba(245,158,11,.24)}
+.card-stock-restocking{background:linear-gradient(180deg,#19140e 0%,#13110d 100%);border:1px solid rgba(251,146,60,.3)}
+.card-stock-out{background:linear-gradient(180deg,#171111 0%,#120e0e 100%);border:1px solid rgba(248,113,113,.22)}
+.card-stock-item .stepper .n.stock-count-zero{color:#f87171;font-weight:700}
+.card-stock-item .stepper .n.stock-count-low{color:#fb923c;font-weight:700}
+.card-stock-item .stepper .n.stock-count-ok{color:#4ade80;font-weight:700}
 
 /* ---------- date picker & sales toolbar ---------- */
 .sales-header{margin-bottom:14px}
@@ -216,8 +277,11 @@ input,select{font-family:inherit}
 .nav button{display:flex;flex-direction:column;align-items:center;gap:3px;color:#7A7A7A;font-size:10px;flex:1}
 .nav button.on{color:var(--gold)}
 
-.fab{position:absolute;right:20px;bottom:calc(88px + env(safe-area-inset-bottom,0px));background:var(--gold);color:#0A0A0A;border-radius:18px;padding:12px 16px;display:flex;align-items:center;gap:10px;font-weight:600;font-size:13.5px;box-shadow:0 12px 26px rgba(0,0,0,.55)}
-.fab .c{background:rgba(0,0,0,.2);border-radius:999px;padding:1px 8px;font-size:11.5px}
+.fab{position:absolute;left:18px;right:18px;bottom:calc(76px + env(safe-area-inset-bottom,0px));width:auto;min-height:62px;justify-content:space-between;border:1px solid #3a3a3a;background:#171719;border-radius:28px;padding:7px 10px 7px 18px;color:#f3f3f3;box-shadow:0 14px 30px rgba(0,0,0,.45);font-size:15px;display:flex;align-items:center;z-index:4}
+.fab .c{background:none;padding:0;font-size:15px;font-weight:600}
+.fab .cart-left{display:flex;align-items:center;gap:13px;font-size:16px;font-weight:600}
+.fab .fab-cta{display:flex;align-items:center;gap:8px;background:var(--gold);color:#0a0a0a;border-radius:999px;padding:14px 22px;font-size:14px;font-weight:600;white-space:nowrap}
+.fab .fab-cta b{font-size:18px;font-weight:500}
 
 /* ---------- sheet ---------- */
 .scrim{position:absolute;inset:0;background:rgba(0,0,0,.62);opacity:0;pointer-events:none;transition:opacity .22s ease;z-index:5}
@@ -305,10 +369,11 @@ input,select{font-family:inherit}
   .screen{grid-area:screen;padding:10px 28px 44px}
   .sec{margin-top:28px}
 
-  .fab{right:28px;bottom:26px}
+  .fab{left:278px;right:28px;bottom:26px;width:auto}
 
-  .itemgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  .itemgrid .item{margin-bottom:0}
+  .itemgrid{display:block !important}
+  .itemgrid .item{margin-bottom:14px}
+  .item{min-height:150px}
   .cardgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .cardgrid>.card{margin-bottom:0}
 
@@ -323,9 +388,6 @@ input,select{font-family:inherit}
   }
   .sheet.on{transform:translate(-50%,-50%) scale(1);opacity:1;pointer-events:auto}
   .grab{display:none}
-}
-@media (min-width:1180px){
-  .itemgrid{grid-template-columns:1fr 1fr 1fr}
 }
 
 @media print {
@@ -1170,7 +1232,8 @@ function subAdminCard(s){
 }
 
 function status(i){
-  if(i.stock===0) return i.eta ? {k:"restock", label:`Restocking in ${i.eta} min`, cls:"orange"} : {k:"out", label:"Sold out today", cls:"red"};
+  if(i.stock===0 && i.eta) return {k:"restock", label:`Restocking in ${i.eta} min`, cls:"orange"};
+  if(i.stock===0) return {k:"out", label:"Sold out", cls:"red"};
   if(i.stock<=3) return {k:"low", label:`Only ${i.stock} left`, cls:"orange"};
   return {k:"in", label:`${i.stock} available`, cls:"green"};
 }
@@ -1198,15 +1261,20 @@ const icons = {
 };
 
 /* ============================ HEAD + NAV ============================ */
+function getGreeting(){
+  const h = new Date().getHours();
+  if(h >= 4 && h < 12) return "Good morning";
+  if(h >= 12 && h < 17) return "Good afternoon";
+  return "Good evening";
+}
+
 function renderHead(){
   if(S.mode==="student"){
-    const st = getStudent();
-    const initials = st.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() || 'KA';
     $("#head").innerHTML = `
       <div class="topbar">
-        <div class="avatar">${initials}</div>
+        <div class="avatar">MU</div>
         <div class="greet">
-          <h1>Good evening, <b>${esc(st.name.split(' ')[0])}</b></h1>
+          <h1><span id="greet-word">${getGreeting()}</span>, <b>MU</b></h1>
           <p>Canteen · Masters Union</p>
         </div>
         <button class="iconbtn" data-act="tab" data-v="menu">${icons.search}</button>
@@ -1252,15 +1320,13 @@ function renderNav(){
 /* ============================ STUDENT SCREENS ============================ */
 function itemCard(i){
   const st=status(i), v=vendor(i.v), q=S.cart[i.id]||0;
-  const pct=Math.max(6,Math.round(i.stock/i.cap*100));
   return `
   <div class="item ${i.stock===0?"out":""}">
     <div class="thumb">${pic(i)}</div>
     <div class="body">
       <div class="name"><span class="veg ${i.veg?"":"non"}"></span>${esc(i.n)}</div>
-      <div class="meta">${v.emoji} ${esc(v.name)} · ${v.prep} min</div>
-      <div class="meta"><span class="tag ${st.cls}"><span class="bulb"></span>${st.label}</span></div>
-      ${i.stock>0?`<div class="stockbar"><i class="${i.stock<=3?"low":""}" style="width:${pct}%"></i></div>`:""}
+      <div class="meta vendor-meta">${v.emoji} ${esc(v.name)} · ${v.prep} min</div>
+      <div class="availability ${st.cls}"><span class="availability-dot"></span>${st.label}</div>
     </div>
     <div class="right">
       <div class="price">${rupee(i.p)}</div>
@@ -1393,15 +1459,15 @@ function screenHome(){
     <div class="ico">⏳</div>
     <h2>Back in a bit</h2>
   </div>
-  <div class="card" style="padding:4px 16px">
+  <div class="card card-restock-banner" style="padding:4px 16px">
     ${prebookable.map(i=>`
       <div class="row">
         <div class="thumb" style="width:40px;height:40px;font-size:19px">${pic(i)}</div>
         <div style="flex:1">
           <div style="font-size:14px;font-weight:500">${esc(i.n)}</div>
-          <div class="tiny muted">${esc(vendor(i.v).name)} · restocking in ${i.eta} min</div>
+          <div class="tiny muted">${esc(vendor(i.v).name)} · <span class="restock-time">restocking in ${i.eta} min</span></div>
         </div>
-        <button class="btn outline sm" data-act="inc" data-v="${i.id}">Pre-book</button>
+        <button class="btn outline sm btn-prebook" data-act="inc" data-v="${i.id}">Pre-book</button>
       </div>`).join("")}
   </div>
   <div class="tiny muted" style="margin-top:10px;line-height:1.5">Pre-booked items are queued directly with the vendor. You'll be notified the moment stock is added, and your order starts cooking automatically without you standing in line.</div>`:""}
@@ -1446,7 +1512,7 @@ function screenMenu(){
     ${VENDORS.map(v=>`<button class="pill ${S.vendorFilter===v.id?"on":""}" data-act="vf" data-v="${v.id}">${v.emoji} ${esc(v.name)}</button>`).join("")}
   </div>
   <div class="rail" style="margin-bottom:14px">
-    ${["All","Available now","Subscriptions","Meals","Snacks","Drinks","Bakery","Veg only"].map(c=>`
+    ${["All","Available now","Meals","Snacks","Drinks","Bakery","Veg only"].map(c=>`
       <button class="pill ${S.catFilter===c?"on":""}" data-act="cf" data-v="${c}">${c}</button>`).join("")}
   </div>
 
@@ -1456,7 +1522,7 @@ function screenMenu(){
         <div style="font-size:13px;font-weight:600;color:var(--gold)">🎟️ ${vSubs.length} Store Subscription${vSubs.length>1?'s':''} Available</div>
         <div class="tiny muted">Weekly &amp; monthly offline passes at ${esc(vendor(S.vendorFilter).name)}</div>
       </div>
-      <button class="btn gold sm" data-act="cf" data-v="Subscriptions">View Passes</button>
+      <button class="btn gold sm" data-act="tab" data-v="subs">View Passes</button>
     </div>
   ` : ''}
 
@@ -1954,8 +2020,10 @@ function screenStock(){
   </div>
   <div class="cardgrid">${items.map(i=>{
     const d=demand(i.id);
+    const stockClass = i.stock===0 ? (i.eta ? 'card-stock-restocking' : 'card-stock-out') : (i.stock<=3 ? 'card-stock-low' : 'card-stock-available');
+    const countClass = i.stock===0 ? 'stock-count-zero' : (i.stock<=3 ? 'stock-count-low' : 'stock-count-ok');
     return `
-    <div class="card" style="margin-bottom:11px">
+    <div class="card card-stock-item ${stockClass}" style="margin-bottom:11px">
       <div style="display:flex;gap:12px;align-items:center">
         <div class="thumb">${pic(i)}</div>
         <div style="flex:1;min-width:0">
@@ -1965,7 +2033,7 @@ function screenStock(){
         </div>
         <div class="stepper">
           <button data-act="stock" data-v="${i.id}" data-d="-1">−</button>
-          <span class="n">${i.stock}</span>
+          <span class="n ${countClass}">${i.stock}</span>
           <button data-act="stock" data-v="${i.id}" data-d="1">+</button>
         </div>
       </div>
@@ -2086,8 +2154,8 @@ function screenAdd(){
       <input id="f-sub-items" placeholder="e.g. 1 Veg Thali or Rajma Chawal + Salad daily (Mon-Sat)" value="${esc(S.subForm.itemsIncluded)}">
     </div>
 
-    <div class="field"><label>Store Pickup &amp; Redemption Details</label>
-      <input id="f-sub-desc" placeholder="e.g. Redeem at ground floor CDS counter. Skip the queue." value="${esc(S.subForm.description)}">
+    <div class="field"><label>Description &amp; Offline Redemption Note</label>
+      <textarea id="f-sub-desc" rows="3" placeholder="e.g. Redeem at ground floor CDS counter. Skip the queue.">${esc(S.subForm.description)}</textarea>
     </div>
 
     <div class="field"><label>Plan Icon</label>
@@ -2170,7 +2238,7 @@ function render(){
   s.innerHTML = (map[S.mode==="student"?S.tab:S.atab])();
 
   $("#fabslot").innerHTML = (S.mode==="student"&&cartCount())
-    ? `<button class="fab" data-act="opencart">🛍️ ${rupee(cartTotal())} <span class="c">${cartCount()}</span></button>` : "";
+    ? `<button class="fab" data-act="opencart"><span class="cart-left">🛒 <span>${cartCount()} items · ${rupee(cartTotal())}</span></span><span class="fab-cta">View Cart <b>→</b></span></button>` : "";
 
   if(S.focusSearch){
     const q=document.getElementById("q");
@@ -2387,7 +2455,7 @@ function editPlanSheet(planId){
 
     <div class="field"><label>Items Included Daily</label><input id="edit-sub-items" placeholder="e.g. 1 Veg Thali + Salad & Chaas daily" value="${esc(p.items_included || '')}"></div>
 
-    <div class="field"><label>Description &amp; Offline Redemption Note</label><textarea id="edit-sub-desc" rows="2">${esc(p.description || '')}</textarea></div>
+    <div class="field"><label>Description &amp; Offline Redemption Note</label><textarea id="edit-sub-desc" rows="3" placeholder="Daily wholesome offline lunch at CDS Canteen. Flash your pass at the billing counter to skip the queue.">${esc(p.description || '')}</textarea></div>
 
     <div style="display:flex;gap:10px;margin-top:16px">
       <button class="btn gold block" style="flex:1" data-act="saveplan" data-v="${p.id}">Save Changes</button>
@@ -2427,7 +2495,7 @@ function newPlanSheet(){
 
     <div class="field"><label>Items Included Daily</label><input id="new-sub-items" placeholder="e.g. 1 Main Meal + Beverage daily"></div>
 
-    <div class="field"><label>Description &amp; Offline Redemption</label><textarea id="new-sub-desc" rows="2" placeholder="Flash digital token at counter daily. Skip queue."></textarea></div>
+    <div class="field"><label>Description &amp; Offline Redemption Note</label><textarea id="new-sub-desc" rows="3" placeholder="Daily wholesome offline lunch at CDS Canteen. Flash your pass at the billing counter to skip the queue."></textarea></div>
 
     <button class="btn gold block" style="margin-top:16px" data-act="createnewplan">Publish Subscription Plan</button>
   `);
@@ -3531,7 +3599,10 @@ async function refreshAllData(){
 /* clock */
 function tick(){
   const d=new Date();
-  $("#clock").textContent=String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+  const clk = $("#clock");
+  if(clk) clk.textContent=String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+  const gw = $("#greet-word");
+  if(gw) gw.textContent = getGreeting();
 }
 tick(); setInterval(tick,20000);
 

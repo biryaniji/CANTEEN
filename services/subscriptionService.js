@@ -261,13 +261,13 @@ async function deletePlan(planId, vendorId) {
   const plan = await db.get('SELECT * FROM vendor_subscriptions WHERE id = ? AND vendor_id = ?', [planId, vendorId]);
   if (!plan) throw new Error('Subscription plan not found or vendor mismatch');
 
-  // Check if there are active subscribers
-  const activeSub = await db.get(
-    `SELECT COUNT(*) as count FROM student_subscriptions WHERE plan_id = ? AND status = 'active'`,
+  // Check if any student subscriptions reference this plan
+  const anySub = await db.get(
+    `SELECT COUNT(*) as count FROM student_subscriptions WHERE plan_id = ?`,
     [planId]
   );
-  if (activeSub && activeSub.count > 0) {
-    // Soft deactivate so existing subscriber passes remain valid
+  if (anySub && anySub.count > 0) {
+    // Soft deactivate so existing subscriber passes and history remain valid
     await db.run('UPDATE vendor_subscriptions SET active = 0 WHERE id = ?', [planId]);
   } else {
     await db.run('DELETE FROM vendor_subscriptions WHERE id = ?', [planId]);
