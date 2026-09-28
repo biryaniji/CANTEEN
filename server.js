@@ -223,6 +223,18 @@ app.post('/api/vendors/:id/items', async (req, res) => {
   }
 });
 
+// DELETE /api/vendors/:id/items/:itemId (Delete menu item)
+app.delete('/api/vendors/:id/items/:itemId', async (req, res) => {
+  try {
+    const vendorId = req.params.id;
+    const itemId = parseInt(req.params.itemId, 10);
+    const result = await stockService.deleteMenuItem(itemId, vendorId);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
 // GET /api/vendors/:id/sales (Historical and date-filtered sales report)
 app.get('/api/vendors/:id/sales', async (req, res) => {
   try {
@@ -534,14 +546,30 @@ app.post('/api/subscriptions/mine/:id/renew', async (req, res) => {
   }
 });
 
-// Serve direct mu-canteen.html if requested
+// Disable HTML caching so changes reflect immediately upon refresh
+app.use((req, res, next) => {
+  if (req.path.endsWith('.html') || req.path === '/') {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  }
+  next();
+});
+
+// Explicit frontend routes
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'mu-canteen.html'));
+});
+
+app.get('/index.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'mu-canteen.html'));
+});
+
 app.get('/mu-canteen.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'mu-canteen.html'));
+  res.sendFile(path.join(__dirname, 'public', 'mu-canteen.html'));
 });
 
 // Serve frontend single-page app fallback
 app.use((req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'mu-canteen.html'));
 });
 
 // ---------------- SERVER STARTUP ----------------

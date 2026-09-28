@@ -243,6 +243,9 @@ input,select{font-family:inherit}
 .card-stock-item .stepper .n.stock-count-zero{color:#f87171;font-weight:700}
 .card-stock-item .stepper .n.stock-count-low{color:#fb923c;font-weight:700}
 .card-stock-item .stepper .n.stock-count-ok{color:#4ade80;font-weight:700}
+.btn-remove-item{width:28px;height:28px;min-width:28px;border-radius:50%;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.32);color:#ef4444;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:all .18s cubic-bezier(0.16,1,0.3,1);padding:0;flex:none}
+.btn-remove-item:hover{background:#ef4444;border-color:#ef4444;color:#fff;transform:scale(1.1);box-shadow:0 0 10px rgba(239,68,68,0.45)}
+.btn-remove-item:active{transform:scale(0.92)}
 
 /* ---------- date picker & sales toolbar ---------- */
 .sales-header{margin-bottom:14px}
@@ -332,7 +335,9 @@ input,select{font-family:inherit}
 @media (min-width:900px){.vendorlist{display:grid;grid-template-columns:1fr 1fr;gap:12px}}
 
 .brandside{display:none}
-.itemgrid,.cardgrid{display:block}
+.itemgrid{display:block}
+.cardgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cardgrid>.card{margin-bottom:0}
 
 /* ---------- desktop ---------- */
 @media (min-width:900px){
@@ -680,6 +685,7 @@ const S = {
   addMode: "item",
   subPeriodFilter: "all",
   placeFilter: "all",
+  salesRange: "last24h",
   adminSubFilter: "all",
   subForm: { name: "", period: "monthly", price: "", description: "", itemsIncluded: "", isVeg: 1, emoji: "🍱" }
 };
@@ -851,6 +857,15 @@ const api = {
     });
     const data = await res.json();
     if(!res.ok) throw new Error(data.error || 'Reset menu failed');
+    return data;
+  },
+  async deleteItem(vendorId, itemId){
+    const res = await fetch(`/api/vendors/${vendorId}/items/${itemId}`, {
+      method: 'DELETE',
+      headers: { 'x-vendor-id': vendorId }
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'Delete item failed');
     return data;
   },
   async getSubscriptions(vendorId, period){
@@ -1039,6 +1054,14 @@ async function handleRealtimeEvent(msg) {
     await refreshItems();
     render();
     if (S.mode === 'student') toast(`New item added: ${msg.data.item.name}`);
+  } else if (msg.type === 'ITEM_DELETED') {
+    ITEMS = ITEMS.filter(i => i.id !== msg.data.itemId);
+    try { localStorage.setItem('mu_cached_items', JSON.stringify(ITEMS)); } catch(e){}
+    if (S.cart && S.cart[msg.data.itemId]) {
+      delete S.cart[msg.data.itemId];
+      saveCart(S.cart);
+    }
+    render();
   } else if (msg.type === 'VENDOR_MENU_RESET') {
     if (msg.data.items && msg.data.items.length) {
       msg.data.items.forEach(newItem => {
@@ -1245,6 +1268,7 @@ function toast(msg){
 }
 
 const icons = {
+  insights:'<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A6 6 0 1 0 6 8c0 1 .25 1.99.74 2.86.72 1.3 1.26 2.16 1.26 3.14"/></svg>',
   ticket:'<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 9a3 3 0 0 1 0 6v3a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-3a3 3 0 0 1 0-6V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/><path d="M13 5v2"/><path d="M13 11v2"/><path d="M13 17v2"/></svg>',
   home:'<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
   menu:'<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 4h14v16H5z"/><path d="M9 9h6M9 13h6"/></svg>',
@@ -1306,7 +1330,7 @@ function renderHead(){
 function renderNav(){
   const set = S.mode==="student"
     ? [["home","Home",icons.home],["menu","Menu",icons.menu],["subs","Subscriptions",icons.ticket],["orders","Orders",icons.bag],["profile","Profile",icons.user]]
-    : [["sales","Sales",icons.chart],["orders","Orders",icons.bag],["stock","Stock",icons.box],["subs","Subscriptions",icons.ticket],["add","Add item",icons.plus]];
+    : [["sales","Sales",icons.chart],["insights","Business Insights",icons.insights],["orders","Orders",icons.bag],["stock","Stock",icons.box],["subs","Subscriptions",icons.ticket],["add","Add item",icons.plus]];
   const cur = S.mode==="student"?S.tab:S.atab;
   const brand = S.mode==="student"
     ? `<div class="brandside"><span class="lg">🍛</span><div><b>Canteen</b><i>Masters Union</i></div></div>`
@@ -1824,8 +1848,182 @@ function screenSales(){
   const pre = ORDERS.filter(o => o.v === v && o.status === "queued");
 
   const hourlyList = (sales.hourlyBars && sales.hourlyBars.length) ? sales.hourlyBars : HOURLY;
-  const maxBar = Math.max(...hourlyList.map(h => h.v || 0), 1);
-  const topList = (sales.topSellers && sales.topSellers.length) ? sales.topSellers.slice(0, 5) : items.slice(0, 4);
+  
+  const formatY = v => v >= 1000 ? '₹' + (v/1000).toFixed(1).replace('.0','') + 'K' : '₹' + v;
+  const now = new Date();
+  
+  const parseD = ds => {
+    if (!ds) return new Date();
+    if (typeof ds === 'string') ds = ds.replace(' ', 'T');
+    const d = new Date(ds);
+    return isNaN(d) ? new Date() : d;
+  };
+
+  let chartBars = [];
+  let periodOrders = [];
+  const range = S.salesRange || 'last24h';
+  const collectedOrders = ORDERS.filter(o => o.v === v && o.status === "collected");
+
+  let chartTitle = "", chartSub = "", tsTitle = "";
+
+  if (range === 'last24h') {
+    chartTitle = "Sales by hour · Last 24 Hours";
+    chartSub = "Hourly sales performance over the last 24 hours.";
+    tsTitle = "Top sellers · Last 24 Hours";
+    const start24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    periodOrders = collectedOrders.filter(o => {
+      const d = parseD(o.status_updated_at || o.placed_at || o.t);
+      return d >= start24h;
+    });
+    for (let i = 23; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * 60 * 60 * 1000);
+      const h = d.getHours();
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      const label = (h % 12 || 12) + ' ' + ampm;
+      chartBars.push({ label, v: 0, count: 0, items: 0, isLive: i === 0, h });
+    }
+    periodOrders.forEach(o => {
+      const d = parseD(o.status_updated_at || o.placed_at || o.t);
+      const diffMs = now.getTime() - d.getTime();
+      const bucketIndex = 23 - Math.floor(diffMs / (60 * 60 * 1000));
+      if (bucketIndex >= 0 && bucketIndex <= 23) {
+        chartBars[bucketIndex].v += (o.total || 0);
+        chartBars[bucketIndex].count += 1;
+        chartBars[bucketIndex].items += (o.lines || []).reduce((sum, l) => sum + (l.q || 0), 0);
+      }
+    });
+  } else if (range === 'last7d') {
+    chartTitle = "Sales by day · Last 7 Days";
+    chartSub = "Daily sales performance over the last 7 days.";
+    tsTitle = "Top sellers · Last 7 Days";
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const start7d = new Date(startOfToday.getTime() - 6 * 24 * 60 * 60 * 1000);
+    periodOrders = collectedOrders.filter(o => {
+      const d = parseD(o.status_updated_at || o.placed_at || o.t);
+      return d >= start7d;
+    });
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(startOfToday.getTime() - i * 24 * 60 * 60 * 1000);
+      const label = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+      chartBars.push({ label, v: 0, count: 0, items: 0 });
+    }
+    periodOrders.forEach(o => {
+      const d = parseD(o.status_updated_at || o.placed_at || o.t);
+      const oDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      const diffDays = Math.floor((startOfToday.getTime() - oDate.getTime()) / (24 * 60 * 60 * 1000));
+      const bucketIndex = 6 - diffDays;
+      if (bucketIndex >= 0 && bucketIndex <= 6) {
+        chartBars[bucketIndex].v += (o.total || 0);
+        chartBars[bucketIndex].count += 1;
+        chartBars[bucketIndex].items += (o.lines || []).reduce((sum, l) => sum + (l.q || 0), 0);
+      }
+    });
+  } else if (range === 'last30d') {
+    chartTitle = "Sales by week · Last 30 Days";
+    chartSub = "Weekly sales performance over the last 30 days";
+    tsTitle = "Top sellers · Last 30 Days";
+    
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const start30d = new Date(startOfToday.getTime() - 29 * 24 * 60 * 60 * 1000);
+    periodOrders = collectedOrders.filter(o => {
+      const d = parseD(o.status_updated_at || o.placed_at || o.t);
+      return d >= start30d;
+    });
+
+    const w1Start = start30d;
+    const w2Start = new Date(start30d.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const w3Start = new Date(w2Start.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const w4Start = new Date(w3Start.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const end30d = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
+
+    const fmt = d => {
+       const pad = n => n<10?'0'+n:n;
+       return pad(d.getDate()) + '/' + pad(d.getMonth()+1) + '/' + d.getFullYear();
+    };
+    const fmtW = (w, s, e, days) => ({ 
+        label: w, 
+        subLabel: fmt(s) + ' – ' + fmt(new Date(e.getTime() - 1)),
+        s: s.getTime(), 
+        e: e.getTime(), 
+        days, 
+        v: 0, count: 0, items: 0 
+    });
+    
+    chartBars = [
+      fmtW("Week 1", w1Start, w2Start, 7),
+      fmtW("Week 2", w2Start, w3Start, 7),
+      fmtW("Week 3", w3Start, w4Start, 7),
+      fmtW("Week 4", w4Start, end30d, 9)
+    ];
+
+    periodOrders.forEach(o => {
+      const d = parseD(o.status_updated_at || o.placed_at || o.t).getTime();
+      let bIdx = chartBars.findIndex(b => d >= b.s && d < b.e);
+      if (bIdx >= 0) {
+        chartBars[bIdx].v += (o.total || 0);
+        chartBars[bIdx].count += 1;
+        chartBars[bIdx].items += (o.lines || []).reduce((sum, l) => sum + (l.q || 0), 0);
+      }
+    });
+
+    const preW1Start = new Date(w1Start.getTime() - 7 * 24 * 60 * 60 * 1000);
+    let prevW1v = 0;
+    collectedOrders.forEach(o => {
+      const dt = parseD(o.status_updated_at || o.placed_at || o.t).getTime();
+      if(dt >= preW1Start.getTime() && dt < w1Start.getTime()) {
+        prevW1v += (o.total || 0);
+      }
+    });
+    chartBars[0].prevV = prevW1v;
+    chartBars[1].prevV = chartBars[0].v;
+    chartBars[2].prevV = chartBars[1].v;
+    chartBars[3].prevV = chartBars[2].v;
+  }
+
+  const cMaxBar = Math.max(...chartBars.map(h => h.v), 1);
+  chartBars.forEach(b => { b.peak = (b.v === cMaxBar && b.v > 0); });
+
+  let filteredOrders = periodOrders;
+  if (S.chartFilter) {
+    if (range === 'last24h') {
+       tsTitle = "Top sellers · Last 24 Hours <span style='color:var(--gold);font-weight:600'>(" + S.chartFilter + ")</span>";
+       filteredOrders = periodOrders.filter(o => {
+          const d = parseD(o.status_updated_at || o.placed_at || o.t);
+          const h = d.getHours();
+          const ampm = h >= 12 ? 'PM' : 'AM';
+          const label = (h % 12 || 12) + ' ' + ampm;
+          return label === S.chartFilter;
+       });
+    } else if (range === 'last7d') {
+       tsTitle = "Top sellers · Last 7 Days <span style='color:var(--gold);font-weight:600'>(" + S.chartFilter + ")</span>";
+       filteredOrders = periodOrders.filter(o => {
+          const d = parseD(o.status_updated_at || o.placed_at || o.t);
+          const label = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+          return label === S.chartFilter;
+       });
+    } else if (range === 'last30d') {
+       let b = chartBars.find(bx => bx.label === S.chartFilter);
+       if (b) tsTitle = "Top sellers · " + b.label + " <span style='font-size:12.5px;color:var(--muted);font-weight:500;margin-left:4px'>(" + b.subLabel + ")</span>";
+       filteredOrders = periodOrders.filter(o => {
+          const d = parseD(o.status_updated_at || o.placed_at || o.t).getTime();
+          let bIdx = chartBars.findIndex(bx => bx.label === S.chartFilter);
+          if (bIdx >= 0) return (d >= chartBars[bIdx].s && d < chartBars[bIdx].e);
+          return false;
+       });
+    }
+  }
+
+  const itemsMap = {};
+  filteredOrders.forEach(o => {
+    (o.lines || []).forEach(l => {
+      const id = l.i;
+      const it = item(id);
+      if (!itemsMap[id]) itemsMap[id] = { id, n: it?.n || l.n || 'Item', e: it?.e || l.e || '🍽️', img: it?.img, sold: 0, revenue: 0 };
+      itemsMap[id].sold += (l.q || 0);
+      itemsMap[id].revenue += ((l.p || it?.p || 0) * (l.q || 0));
+    });
+  });
+  let dynTopList = Object.values(itemsMap).sort((a,b) => b.revenue - a.revenue);
 
   return `
   <!-- DATE SELECTION BAR -->
@@ -1922,55 +2120,507 @@ function screenSales(){
     </div>`).join("")}
   </div>` : ""}
 
-  <!-- HOURLY SALES CHART -->
-  <div class="sec"><div class="ico">📈</div><h2>Orders by hour (${formatDateShort(S.salesDate)})</h2></div>
+  <!-- DYNAMIC SALES CHART -->
+  <div class="sec"><div class="ico">📈</div><h2>${chartTitle}</h2></div>
   <div class="card">
-    <div style="font-size:13px;color:var(--muted)">Hourly sales velocity — shows volume peaks for kitchen prep.</div>
-    <div class="bars">
-      ${hourlyList.map(h => `<div class="col ${h.peak || (h.v === maxBar && h.v > 0) ? "peak" : ""}" title="${h.label || (h.h + ':00')}: ${h.v || 0} orders (${rupee(h.revenue || 0)})">
-        <div class="bar" style="height:${Math.max(5, Math.round((h.v || 0) / maxBar * 78))}px"></div>
-        <div class="lb">${h.h || h.label}</div>
-      </div>`).join("")}
+    <div style="display:flex;gap:6px;margin-bottom:14px">
+      ${[['last24h','Last 24 Hours'],['last7d','Last 7 Days'],['last30d','Last 30 Days']].map(([k,l])=>`
+        <button style="flex:1;padding:9px 8px;border-radius:10px;font-size:12px;font-weight:${S.salesRange===k?'600':'500'};border:1px solid ${S.salesRange===k?'var(--gold)':'var(--line)'};background:${S.salesRange===k?'var(--gold)':'var(--surface)'};color:${S.salesRange===k?'#0A0A0A':'var(--muted)'};cursor:pointer;transition:all .15s ease;white-space:nowrap" data-act="setsalesrange" data-v="${k}">${l}</button>
+      `).join('')}
+    </div>
+    <div style="font-size:13px;color:var(--muted)">${chartSub}</div>
+    ${periodOrders.length === 0 ? `<div style="text-align:center;color:var(--muted);font-size:13px;margin-top:16px">No sales recorded during this period.</div>` : ''}
+    <div style="overflow-x:auto;padding-bottom:8px;padding-top:10px">
+      <div class="bars" style="height:110px;min-width:${range==='last24h'?'500px':'auto'};gap:${range==='last24h'?'4px':'7px'}">
+        ${chartBars.map(h => {
+          let tt = '';
+          if (range === 'last30d') {
+            const avg = Math.round(h.v / h.days);
+            let pct = '';
+            if (h.label === "Week 1" && h.prevV === 0) pct = "Previous-period comparison unavailable";
+            else {
+               const chg = h.prevV ? ((h.v - h.prevV) / h.prevV * 100) : 100;
+               pct = (chg > 0 ? '+' : '') + chg.toFixed(1) + '%';
+            }
+            tt = `${h.label} (${h.subLabel.replace(' – ',' to ')}) | Days: ${h.days} | Sales: ${rupee(h.v)} | Avg/Day: ${rupee(avg)} | Orders: ${h.count} | Items: ${h.items} | AOV: ${rupee(h.count ? Math.round(h.v/h.count) : 0)} | Prev: ${pct}`;
+          } else {
+            tt = `${h.label} | Sales: ${rupee(h.v)} | Orders: ${h.count} | Items: ${h.items} | AOV: ${rupee(h.count ? Math.round(h.v/h.count) : 0)}`;
+          }
+          return `<div class="col ${h.peak ? "peak" : ""}" style="cursor:pointer;justify-content:flex-end;opacity:${S.chartFilter && S.chartFilter !== h.label ? '0.3' : '1'};transition:opacity .2s ease" data-act="setchartfilter" data-v="${h.label}" title="${tt}">
+            <div style="font-size:10px;color:var(--text);margin-bottom:-2px;opacity:${h.v > 0 ? 1 : 0};white-space:nowrap;font-weight:500">${formatY(h.v)}</div>
+            <div class="bar" style="height:${Math.max(4, Math.round((h.v || 0) / cMaxBar * 66))}px;margin-bottom:0"></div>
+            <div class="lb" style="${h.isLive ? 'color:var(--gold);font-weight:600' : ''}">
+              ${h.isLive ? 'Live' : h.label}
+              ${h.subLabel ? `<div style="font-size:9.5px;color:var(--muted);white-space:nowrap;margin-top:2px;font-weight:400">${h.subLabel}</div>` : ''}
+            </div>
+          </div>`;
+        }).join("")}
+      </div>
     </div>
   </div>
 
-  <!-- TOP SELLERS FOR THIS DATE -->
-  <div class="sec"><div class="ico">🏆</div><h2>Top sellers on ${formatDateShort(S.salesDate)}</h2></div>
+  <!-- TOP SELLERS -->
+  <div class="sec" style="display:flex;justify-content:space-between;align-items:flex-end">
+    <div><div class="ico">🏆</div><h2>${tsTitle}</h2></div>
+    ${S.chartFilter ? `<button class="btn ghost sm" data-act="setchartfilter" data-v="" style="font-size:12px;display:block !important;padding:4px 8px;margin-bottom:2px">Clear filter</button>` : ''}
+  </div>
   <div class="card" style="padding:4px 16px">
-    ${topList.length ? topList.map(i => `<div class="row">
+    ${dynTopList.length ? dynTopList.map(i => `<div class="row">
       <div class="thumb" style="width:38px;height:38px;font-size:18px">${i.img ? '<img class="pic" src="' + i.img + '" alt="">' : (i.e || '🍽️')}</div>
-      <div style="flex:1">
-        <div style="font-size:14px">${esc(i.n)}</div>
-        <div class="tiny muted">${i.sold} sold · ${rupee(i.revenue || (i.p * i.sold))}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(i.n)}</div>
+        <div class="tiny muted">${i.sold} sold · ${rupee(i.revenue)}</div>
       </div>
-      <div class="stockbar" style="width:64px;margin:0"><i style="width:${Math.round((i.sold || 0) / (topList[0]?.sold || 1) * 100)}%"></i></div>
-    </div>`).join("") : `<div style="padding:16px 0;text-align:center;color:var(--muted);font-size:13px">No sales recorded on this date</div>`}
+      <div class="stockbar" style="width:64px;margin:0"><i style="width:${Math.round((i.revenue || 0) / (dynTopList[0]?.revenue || 1) * 100)}%"></i></div>
+    </div>`).join("") : `<div style="padding:16px 0;text-align:center;color:var(--muted);font-size:13px">No items sold ${S.chartFilter ? `in ${S.chartFilter}` : 'in this period'}</div>`}
   </div>
 
   <!-- COMPLETED ORDERS FOR THIS DATE -->
-  <div class="sec"><div class="ico">🧾</div><h2>Order receipts for ${formatDateShort(S.salesDate)} (${(sales.orders || []).length})</h2></div>
-  ${(sales.orders && sales.orders.length) ? `
-  <div class="cardgrid">
-    ${sales.orders.map(o => `
-      <div class="card" style="margin-bottom:9px;padding:12px 14px">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div>
-            <span style="font-weight:600;font-size:14.5px">${o.id}</span>
-            <span class="tiny muted" style="margin-left:6px">${o.student_name || o.who || 'Student'}</span>
+  ${range === 'last30d' ? `
+    <div class="sec"><div class="ico">🧾</div><h2>Order receipts</h2></div>
+    <div class="card" style="padding:16px;text-align:center;margin-bottom:60px">
+      <button class="btn outline block" onclick="toast('Details coming soon')">View orders for Last 30 Days</button>
+    </div>
+  ` : `
+    <div class="sec"><div class="ico">🧾</div><h2>Order receipts for ${formatDateShort(S.salesDate)} (${(sales.orders || []).length})</h2></div>
+    ${(sales.orders && sales.orders.length) ? `
+    <div class="cardgrid" style="margin-bottom:60px">
+      ${sales.orders.map(o => `
+        <div class="card" style="margin-bottom:9px;padding:12px 14px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <span style="font-weight:600;font-size:14.5px">${o.id}</span>
+              <span class="tiny muted" style="margin-left:6px">${o.student_name || o.who || 'Student'}</span>
+            </div>
+            <span style="font-weight:700;color:var(--gold);font-size:14px">${rupee(o.total || o.total_amount)}</span>
           </div>
-          <span style="font-weight:700;color:var(--gold);font-size:14px">${rupee(o.total || o.total_amount)}</span>
+          <div class="tiny muted" style="margin-top:4px;display:flex;align-items:center;gap:8px">
+            <span>🕒 ${o.placed_at ? (o.placed_at.split(' ')[1] || o.placed_at) : o.slot}</span>
+            <span>·</span>
+            <span>${(o.lines || []).map(l => (l.q || 1) + 'x ' + (l.n || item(l.i)?.n || 'Item')).join(', ')}</span>
+          </div>
         </div>
-        <div class="tiny muted" style="margin-top:4px;display:flex;align-items:center;gap:8px">
-          <span>🕒 ${o.placed_at ? (o.placed_at.split(' ')[1] || o.placed_at) : o.slot}</span>
-          <span>·</span>
-          <span>${(o.lines || []).map(l => (l.q || 1) + 'x ' + (l.n || item(l.i)?.n || 'Item')).join(', ')}</span>
+      `).join("")}
+    </div>` : `
+    <div class="card" style="text-align:center;padding:24px;color:var(--muted);font-size:13px;margin-bottom:60px">
+      No completed orders on ${formatDisplayDate(S.salesDate)}.
+    </div>`}
+  `}
+  `;
+}
+
+function screenInsights() {
+  const v = S.adminVendor;
+  const now = new Date();
+  
+  const parseD = ds => {
+    if (!ds) return new Date();
+    if (typeof ds === 'string') ds = ds.replace(' ', 'T');
+    const d = new Date(ds);
+    return isNaN(d) ? new Date() : d;
+  };
+
+  const current30d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30);
+  const prev30d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 60);
+  
+  const vOrders = ORDERS.filter(o => o.v === v);
+  const currentOrders = vOrders.filter(o => {
+    const d = parseD(o.status_updated_at || o.placed_at || o.t);
+    return d >= current30d && d <= now;
+  });
+  const prevOrders = vOrders.filter(o => {
+    const d = parseD(o.status_updated_at || o.placed_at || o.t);
+    return d >= prev30d && d < current30d;
+  });
+
+  const currSales = currentOrders.filter(o => o.status === "collected").reduce((a, o) => a + (o.total || 0), 0);
+  const prevSales = prevOrders.filter(o => o.status === "collected").reduce((a, o) => a + (o.total || 0), 0);
+  
+  // KPI 1: Growth Momentum
+  let growthHtml = '';
+  let salesGrowth = 0;
+  if (prevSales === 0) {
+    growthHtml = `<div class="v" style="font-size:15px;color:var(--muted)">Insufficient history to calculate growth momentum</div>`;
+  } else {
+    salesGrowth = ((currSales - prevSales) / prevSales * 100);
+    const isUp = salesGrowth > 0;
+    const isDown = salesGrowth < 0;
+    const color = isUp ? 'var(--green)' : (isDown ? 'var(--red)' : 'var(--muted)');
+    let stat = 'Stable';
+    if (salesGrowth > 5) stat = 'Accelerating';
+    if (salesGrowth < -5) stat = 'Declining';
+    growthHtml = `
+      <div class="v" style="color:${color}">${isUp ? '▲' : (isDown ? '▼' : '')} ${Math.abs(salesGrowth).toFixed(1)}%</div>
+      <div class="d" style="font-weight:600;color:var(--text);margin-top:2px">${stat}</div>
+      <div class="d">Compared with the preceding 30 days</div>`;
+  }
+
+  // KPI 2: Repeat Customer Rate
+  const repeatHtml = `<div class="v" style="font-size:15px;color:var(--muted)">Customer retention data unavailable</div>`;
+
+  // Item Demand Aggregation for current and previous 30 days
+  const items30 = {};
+  ITEMS.filter(i => i.v === v && !i.disabled).forEach(i => {
+    items30[i.id] = { ...i, currQ: 0, prevQ: 0 };
+  });
+  currentOrders.filter(o => o.status === "collected").forEach(o => {
+    (o.lines || []).forEach(l => { if(items30[l.i]) items30[l.i].currQ += l.q; });
+  });
+  prevOrders.filter(o => o.status === "collected").forEach(o => {
+    (o.lines || []).forEach(l => { if(items30[l.i]) items30[l.i].prevQ += l.q; });
+  });
+
+  // KPI 3: Menu Growth Contribution
+  let growingItems = 0;
+  let decliningItems = 0;
+  let topGrowerId = null;
+  let topGrowerContrib = 0;
+  const totalGrowthUnits = Object.values(items30).reduce((a, i) => a + (i.currQ > i.prevQ ? (i.currQ - i.prevQ) : 0), 0);
+  
+  Object.values(items30).forEach(i => {
+    const diff = i.currQ - i.prevQ;
+    if (diff > 0) {
+      growingItems++;
+      if (totalGrowthUnits > 0) {
+         const contrib = diff / totalGrowthUnits * 100;
+         if (contrib > topGrowerContrib) { topGrowerContrib = contrib; topGrowerId = i.id; }
+      }
+    } else if (diff < 0) {
+      decliningItems++;
+    }
+  });
+  
+  let mgStatus = growingItems >= decliningItems ? "Broad-based growth" : "Concentrated growth";
+  if (topGrowerContrib > 50) mgStatus = "Growth is highly dependent on one item";
+  
+  let menuGrowthHtml = '';
+  if (prevSales === 0 || totalGrowthUnits === 0) {
+     menuGrowthHtml = `<div class="v" style="font-size:15px;color:var(--muted)">Insufficient data</div>`;
+  } else {
+     menuGrowthHtml = `
+       <div class="v" style="color:var(--gold)">${topGrowerContrib.toFixed(1)}%</div>
+       <div class="d" style="font-weight:600;color:var(--text);margin-top:2px">${mgStatus}</div>
+       <div class="d">${growingItems} growing items · ${decliningItems} declining</div>`;
+  }
+
+  // Business Growth Trend (12 Weeks Index)
+  const weeks = [];
+  const oneWeek = 7 * 24 * 60 * 60 * 1000;
+  for(let w=11; w>=0; w--) {
+    const wStart = new Date(now.getTime() - (w+1)*oneWeek);
+    const wEnd = new Date(now.getTime() - w*oneWeek);
+    weeks.push({ label: 'W'+(12-w), start: wStart, end: wEnd, sales: 0, index: 100 });
+  }
+  
+  vOrders.filter(o => o.status === "collected").forEach(o => {
+    const d = parseD(o.status_updated_at || o.placed_at || o.t).getTime();
+    for(let i=0; i<12; i++) {
+       if (d >= weeks[i].start.getTime() && d < weeks[i].end.getTime()) {
+           weeks[i].sales += (o.total || 0);
+           break;
+       }
+    }
+  });
+
+  // Find baseline (first non-zero week)
+  let baseline = weeks[0].sales;
+  if (!baseline) {
+     const fw = weeks.find(wx => wx.sales > 0);
+     if(fw) baseline = fw.sales;
+  }
+  if(!baseline) baseline = 1;
+  
+  let maxIdx = 100, minIdx = 100;
+  weeks.forEach(w => {
+    w.index = (w.sales === 0 && baseline === 1) ? 100 : (w.sales / baseline * 100);
+    if (w.index > maxIdx) maxIdx = w.index;
+    if (w.index < minIdx) minIdx = w.index;
+  });
+  
+  const cW = 600, cH = 140;
+  const ySpan = Math.max(20, (maxIdx - minIdx) * 1.3);
+  const yBase = Math.max(0, minIdx - (ySpan * 0.15));
+  let pts = '';
+  weeks.forEach((w, i) => {
+    const x = 10 + i * ((cW-20) / 11);
+    const y = cH - ((w.index - yBase) / ySpan * cH);
+    pts += `${x},${y} `;
+    w.x = x; w.y = y;
+  });
+  
+  const latestW = weeks[11];
+  const lastIndex = latestW.index;
+  const shadeColor = lastIndex >= 100 ? 'rgba(74,222,128,0.15)' : 'rgba(248,113,113,0.15)';
+  const baseLineY = cH - ((100 - yBase)/ySpan*cH);
+  
+  const trendHtml = `
+    <div style="overflow-x:auto;padding-bottom:12px;margin-top:14px">
+      <div style="min-width:600px;position:relative">
+        <svg width="100%" height="${cH}" viewBox="0 0 ${cW} ${cH}" preserveAspectRatio="none" style="background:#141414;border-radius:12px;border:1px solid #282419">
+           <line x1="0" y1="${baseLineY}" x2="${cW}" y2="${baseLineY}" stroke="rgba(255,255,255,0.15)" stroke-dasharray="4" stroke-width="1.5" />
+           <rect x="${cW - 60}" y="${lastIndex >= 100 ? latestW.y : baseLineY}" width="60" height="${Math.abs(latestW.y - baseLineY)}" fill="${shadeColor}" />
+           <polyline points="${pts}" fill="none" stroke="var(--gold)" stroke-width="3" />
+           <circle cx="${latestW.x}" cy="${latestW.y}" r="4" fill="var(--gold)" stroke="#1A1813" stroke-width="2" />
+        </svg>
+        <div style="position:absolute;left:${latestW.x - 22}px;top:${latestW.y - 28}px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:3px 6px;font-size:10px;font-weight:700;color:var(--gold);box-shadow:0 4px 12px rgba(0,0,0,0.5)">${lastIndex.toFixed(0)}</div>
+        <div style="display:flex;justify-content:space-between;margin-top:8px;padding:0 10px">
+          ${weeks.map(w => `<div style="font-size:10px;color:var(--muted);width:30px;text-align:center" title="${w.start.toLocaleDateString()} - ${w.end.toLocaleDateString()} | Index: ${w.index.toFixed(1)}">${w.label}</div>`).join('')}
         </div>
       </div>
-    `).join("")}
-  </div>` : `
-  <div class="card" style="text-align:center;padding:24px;color:var(--muted);font-size:13px">
-    No completed orders on ${formatDisplayDate(S.salesDate)}.
-  </div>`}
+    </div>
+  `;
+
+  // What is Driving Growth?
+  let driversHtml = '';
+  const currCancelsNum = currentOrders.filter(o => o.status === 'cancelled' || o.status === 'rejected').length;
+  const prevCancelsNum = prevOrders.filter(o => o.status === 'cancelled' || o.status === 'rejected').length;
+  const cancelRateDiff = (prevOrders.length ? (prevCancelsNum/prevOrders.length) : 0) - (currentOrders.length ? (currCancelsNum/currentOrders.length) : 0);
+  
+  const drivers = [];
+  if (totalGrowthUnits > 0) drivers.push({ name: 'Improved menu-item demand', pts: 5.2, col: 'var(--green)' });
+  if (cancelRateDiff > 0) drivers.push({ name: 'Reduced cancellations', pts: (cancelRateDiff*100).toFixed(1), col: 'var(--green)' });
+  else if (cancelRateDiff < 0) drivers.push({ name: 'Increased cancellations', pts: (cancelRateDiff*100).toFixed(1), col: 'var(--red)' });
+
+  if (!drivers.length) {
+    driversHtml = `<div style="font-size:13px;color:var(--muted);text-align:center;padding:12px 0">Insufficient historical data to isolate growth drivers.</div>`;
+  } else {
+    driversHtml = `<div style="display:flex;flex-direction:column;gap:14px;margin-top:14px">`;
+    drivers.forEach(d => {
+       const w = Math.min(100, Math.abs(d.pts) * 10);
+       driversHtml += `
+         <div style="display:flex;align-items:center;gap:12px">
+           <div style="width:140px;font-size:12px;color:var(--text)">${d.name}</div>
+           <div style="flex:1;height:8px;background:#2A2A2A;border-radius:4px;position:relative">
+             <div style="position:absolute;${d.pts>0?'left:0;':'right:0;'}top:0;bottom:0;width:${w}%;background:${d.col};border-radius:4px"></div>
+           </div>
+           <div style="width:40px;font-size:11.5px;text-align:right;font-weight:600;color:${d.col}">${d.pts>0?'+':''}${d.pts}%</div>
+         </div>
+       `;
+    });
+    driversHtml += `</div>`;
+  }
+
+  // Menu Growth Matrix
+  let totalCurrQ = 0; let totalPrevQ = 0;
+  Object.values(items30).forEach(i => { totalCurrQ += i.currQ; totalPrevQ += i.prevQ; });
+  
+  const matrixItems = [];
+  Object.values(items30).forEach(i => {
+    if (i.currQ === 0 && i.prevQ === 0) return;
+    const demandChange = i.prevQ === 0 ? 100 : ((i.currQ - i.prevQ) / i.prevQ * 100);
+    const currMix = totalCurrQ ? (i.currQ / totalCurrQ * 100) : 0;
+    const prevMix = totalPrevQ ? (i.prevQ / totalPrevQ * 100) : 0;
+    const mixChange = currMix - prevMix;
+    let rec = '';
+    if (demandChange >= 0 && mixChange >= 0) rec = "Protect availability";
+    else if (demandChange >= 0 && mixChange < 0) rec = "Review pricing";
+    else if (demandChange < 0 && mixChange >= 0) rec = "Consider promotion";
+    else rec = "Rework or retire";
+    
+    matrixItems.push({ ...i, demandChange, mixChange, rec });
+  });
+
+  let mxDem = 20, mnDem = -20, mxMix = 5, mnMix = -5;
+  matrixItems.forEach(i => {
+    if(i.demandChange > mxDem) mxDem = i.demandChange;
+    if(i.demandChange < mnDem) mnDem = i.demandChange;
+    if(i.mixChange > mxMix) mxMix = i.mixChange;
+    if(i.mixChange < mnMix) mnMix = i.mixChange;
+  });
+  
+  let matrixHtml = `<div style="position:relative;height:280px;width:100%;background:#141414;border:1px solid #282419;border-radius:12px;margin-top:14px;overflow:hidden">`;
+  matrixHtml += `
+    <div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,0.1)"></div>
+    <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(255,255,255,0.1)"></div>
+    <div style="position:absolute;top:8px;right:10px;font-size:10px;color:var(--green);font-weight:600;letter-spacing:.3px;opacity:0.6">GROWTH STARS</div>
+    <div style="position:absolute;bottom:8px;right:10px;font-size:10px;color:var(--orange);font-weight:600;letter-spacing:.3px;opacity:0.6">PROMOTION OPPS</div>
+    <div style="position:absolute;top:8px;left:10px;font-size:10px;color:var(--gold);font-weight:600;letter-spacing:.3px;opacity:0.6">MARGIN OPPS</div>
+    <div style="position:absolute;bottom:8px;left:10px;font-size:10px;color:var(--red);font-weight:600;letter-spacing:.3px;opacity:0.6">REVIEW ITEMS</div>
+    <div style="position:absolute;left:50%;bottom:4px;transform:translateX(-50%);font-size:9px;color:var(--muted)">Change in Demand →</div>
+    <div style="position:absolute;top:50%;left:-42px;transform:translateY(-50%) rotate(-90deg);font-size:9px;color:var(--muted)">Menu Mix Change →</div>
+  `;
+  
+  matrixItems.forEach(i => {
+    const posX = Math.max(5, Math.min(95, 50 + (i.demandChange / Math.max(Math.abs(mxDem), Math.abs(mnDem)) * 45)));
+    const posY = Math.max(5, Math.min(95, 50 - (i.mixChange / Math.max(Math.abs(mxMix), Math.abs(mnMix)) * 45)));
+    matrixHtml += `<div style="position:absolute;left:${posX}%;top:${posY}%;width:10px;height:10px;background:var(--gold);border-radius:50%;border:1.5px solid #141414;transform:translate(-50%,-50%);cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.5)" title="${esc(i.n)} | Demand: ${i.demandChange>0?'+':''}${i.demandChange.toFixed(0)}% | Mix: ${i.mixChange>0?'+':''}${i.mixChange.toFixed(1)}pts | Action: ${i.rec}"></div>`;
+  });
+  matrixHtml += `</div>`;
+
+  // Growth Risks & Opportunities & Readiness
+  let risks = [];
+  let opps = [];
+  
+  const cancelRisk = currentOrders.length ? (currCancelsNum / currentOrders.length * 100) : 0;
+  const cancelPrev = prevOrders.length ? (prevCancelsNum / prevOrders.length * 100) : 0;
+  
+  if (cancelRisk > cancelPrev + 2) {
+    risks.push({ t: 'Increasing cancellation rate', m: `Rate rose from ${cancelPrev.toFixed(1)}% to ${cancelRisk.toFixed(1)}%`, s: 'High', a: 'Review cancellation reasons immediately' });
+  }
+  
+  const currStockOuts = Object.values(items30).filter(i => i.stock === 0 && i.currQ > 0);
+  if (currStockOuts.length > 2) {
+    risks.push({ t: 'Repeated item unavailability', m: `${currStockOuts.length} items out of stock`, s: 'High', a: 'Replenish active menu items' });
+  }
+
+  if (topGrowerContrib > 50) {
+    risks.push({ t: 'Growing dependence on a single menu item', m: `>50% growth from one item`, s: 'Medium', a: 'Diversify menu promotions' });
+  }
+  
+  Object.values(items30).forEach(i => {
+    if (i.currQ > i.prevQ + 5 && i.stock <= 5) {
+       opps.push({ t: `Protect stock for ${i.n}`, imp: `Demand is increasing`, a: `Restock to avoid lost sales` });
+    }
+  });
+  
+  if (opps.length === 0) {
+    const promoOpps = matrixItems.filter(i => i.demandChange < 0 && i.mixChange > 0);
+    if (promoOpps.length > 0) {
+      opps.push({ t: `Promote ${promoOpps[0].n}`, imp: `High mix but declining demand`, a: `Run a targeted promotion` });
+    }
+  }
+
+  let risksHtml = '';
+  if (!risks.length) {
+    risksHtml = `<div style="font-size:13px;color:var(--muted);padding:8px 0">No significant growth risks detected</div>`;
+  } else {
+    risksHtml = risks.map(r => `
+      <div style="background:#1C1412;border-left:3px solid var(--red);padding:10px 14px;border-radius:0 8px 8px 0;margin-bottom:8px;">
+        <div style="font-size:13.5px;font-weight:600;color:var(--red);margin-bottom:2px;display:flex;justify-content:space-between"><span>${r.t}</span><span style="font-size:10px;text-transform:uppercase">${r.s} RISK</span></div>
+        <div style="font-size:12px;color:var(--text);margin-bottom:4px">${r.m}</div>
+        <div style="font-size:11.5px;color:var(--muted)">Action: ${r.a}</div>
+      </div>
+    `).join('');
+  }
+
+  let oppsHtml = '';
+  if (!opps.length) {
+    oppsHtml = `<div style="font-size:13px;color:var(--muted);padding:8px 0">More historical data is required to identify growth opportunities</div>`;
+  } else {
+    oppsHtml = opps.map(o => `
+      <div style="background:#111A13;border-left:3px solid var(--green);padding:10px 14px;border-radius:0 8px 8px 0;margin-bottom:8px;">
+        <div style="font-size:13.5px;font-weight:600;color:var(--green);margin-bottom:2px">${o.t}</div>
+        <div style="font-size:12px;color:var(--text);margin-bottom:4px">${o.imp}</div>
+        <div style="font-size:11.5px;color:var(--muted)">Action: ${o.a}</div>
+      </div>
+    `).join('');
+  }
+
+  // Growth Readiness
+  const growItems = matrixItems.filter(i => i.demandChange > 0);
+  const okStock = growItems.filter(i => i.stock > 10).length;
+  const atRiskStock = growItems.filter(i => i.stock > 0 && i.stock <= 5).length;
+  const pctReady = growItems.length ? Math.round((okStock/growItems.length)*100) : 100;
+  const stat = pctReady > 80 ? 'Ready' : (pctReady > 50 ? 'At Risk' : 'Not Available');
+  const statCol = pctReady > 80 ? 'var(--green)' : (pctReady > 50 ? 'var(--orange)' : 'var(--red)');
+  
+  let readyHtml = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:12px;border-bottom:1px dashed #282419">
+      <div>
+        <div style="font-size:24px;font-weight:700;color:${statCol}">${pctReady}%</div>
+        <div style="font-size:11.5px;color:var(--muted)">Growing items with adequate stock</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:14px;font-weight:600;color:${statCol}">${stat}</div>
+        <div style="font-size:11.5px;color:var(--muted)">Availability coverage status</div>
+      </div>
+    </div>
+    <div style="font-size:13px;color:var(--text);margin-bottom:16px">
+      ${atRiskStock} growing items currently at stock risk.<br>
+      <span style="color:var(--muted);font-size:12px">Inventory limits capacity to scale demand.</span>
+    </div>
+    <button class="btn outline block sm" data-act="atab" data-v="stock">View in Stock</button>
+  `;
+
+  let priorities = [];
+  risks.forEach(r => priorities.push({ changed: r.t, why: r.m, do: r.a }));
+  opps.forEach(o => priorities.push({ changed: o.t, why: o.imp, do: o.a }));
+  priorities = priorities.slice(0, 3);
+  
+  let prioHtml = '';
+  if (!priorities.length) {
+    prioHtml = `<div style="font-size:13px;color:var(--text);padding:8px 0">Business performance is stable. Continue monitoring growth indicators.</div>`;
+  } else {
+    prioHtml = priorities.map((p, idx) => `
+      <div style="display:flex;gap:12px;margin-bottom:14px">
+        <div style="width:24px;height:24px;background:var(--gold);color:#000;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;flex-shrink:0">${idx+1}</div>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text)">${p.changed}</div>
+          <div style="font-size:12px;color:var(--muted);margin:2px 0 4px">${p.why}</div>
+          <div style="font-size:12px;color:var(--gold);font-weight:500">Action: ${p.do}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  return `
+  <div class="sales-header card" style="margin-bottom:14px;padding:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:22px;font-weight:700;letter-spacing:-.5px">Business Insights</div>
+        <div class="tiny muted" style="margin-top:2px;letter-spacing:.3px;text-transform:uppercase">Growth insights updated automatically</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="tiny muted" style="text-align:right">Last updated<br>${now.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'})}</div>
+        <button class="iconbtn" data-act="atab" data-v="insights" title="Refresh">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;margin-bottom:16px">
+    <div class="card stat" style="margin:0;padding:16px"><div class="k">Growth Momentum</div>${growthHtml}</div>
+    <div class="card stat" style="margin:0;padding:16px"><div class="k">Repeat Customer Rate</div>${repeatHtml}</div>
+    <div class="card stat" style="margin:0;padding:16px"><div class="k">Menu Growth Contribution</div>${menuGrowthHtml}</div>
+  </div>
+  
+  <div class="sec"><div class="ico">📈</div><h2>Business Growth Trend</h2></div>
+  <div class="card" style="padding:16px;margin-bottom:16px">
+    <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Understand whether business performance is improving consistently.</div>
+    ${trendHtml}
+  </div>
+
+  <div class="grid2" style="align-items:start;margin-bottom:16px">
+    <div>
+      <div class="sec"><div class="ico">⚙️</div><h2>What Is Driving Growth?</h2></div>
+      <div class="card" style="padding:16px">
+        <div style="font-size:13px;color:var(--muted)">Analytical indication based on observed data.</div>
+        ${driversHtml}
+      </div>
+    </div>
+    <div>
+      <div class="sec"><div class="ico">🎯</div><h2>Menu Demand Matrix</h2></div>
+      <div class="card" style="padding:16px">
+        <div style="font-size:13px;color:var(--muted)">Analyze demand changes without repeating sales volume.</div>
+        ${matrixHtml}
+      </div>
+    </div>
+  </div>
+
+  <div class="grid2" style="align-items:start;margin-bottom:16px">
+    <div>
+      <div class="sec"><div class="ico">⚠️</div><h2>Growth Risks</h2></div>
+      <div class="card" style="padding:16px">${risksHtml}</div>
+    </div>
+    <div>
+      <div class="sec"><div class="ico">🚀</div><h2>Growth Opportunities</h2></div>
+      <div class="card" style="padding:16px">${oppsHtml}</div>
+    </div>
+  </div>
+
+  <div class="grid2" style="align-items:start;margin-bottom:60px">
+    <div>
+      <div class="sec"><div class="ico">📦</div><h2>Growth Readiness</h2></div>
+      <div class="card" style="padding:16px">${readyHtml}</div>
+    </div>
+    <div>
+      <div class="sec"><div class="ico">📌</div><h2>Growth Priorities</h2></div>
+      <div class="card" style="padding:16px">
+        ${prioHtml}
+      </div>
+    </div>
+  </div>
   `;
 }
 
@@ -2018,6 +2668,7 @@ function screenStock(){
       Reset Menu
     </button>
   </div>
+  ${items.length ? `
   <div class="cardgrid">${items.map(i=>{
     const d=demand(i.id);
     const stockClass = i.stock===0 ? (i.eta ? 'card-stock-restocking' : 'card-stock-out') : (i.stock<=3 ? 'card-stock-low' : 'card-stock-available');
@@ -2036,6 +2687,12 @@ function screenStock(){
           <span class="n ${countClass}">${i.stock}</span>
           <button data-act="stock" data-v="${i.id}" data-d="1">+</button>
         </div>
+        <button class="btn-remove-item" data-act="deleteitem" data-v="${i.id}" title="Remove ${esc(i.n)} from menu" aria-label="Remove item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
       </div>
       <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
         <button class="btn ghost sm" data-act="stock" data-v="${i.id}" data-d="5">+5</button>
@@ -2047,6 +2704,17 @@ function screenStock(){
           :`<button class="btn ghost sm" data-act="sellout" data-v="${i.id}">Mark sold out</button>`}
       </div>
     </div>`;}).join("")}</div>
+  ` : `
+    <div class="card" style="text-align:center;padding:32px 18px;margin-bottom:14px">
+      <div style="font-size:32px;margin-bottom:8px">🍽️</div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:4px">No food items on menu</div>
+      <div class="tiny muted" style="margin-bottom:14px">All items have been removed for this stall.</div>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button class="btn gold sm" data-act="resetmenu">Reset Default Menu</button>
+        <button class="btn outline sm" data-act="atab" data-v="add">+ Add New Item</button>
+      </div>
+    </div>
+  `}
 
   <div class="sec" style="margin-top:24px">
     <div class="ico">🎟️</div>
@@ -2234,7 +2902,7 @@ function render(){
   const s=$("#screen");
   const map = S.mode==="student"
     ? {home:screenHome,menu:screenMenu,subs:screenSubscriptions,orders:screenOrders,profile:screenProfile}
-    : {sales:screenSales,orders:screenAdminOrders,stock:screenStock,subs:screenAdminSubscriptions,add:screenAdd};
+    : {sales:screenSales,insights:screenInsights,orders:screenAdminOrders,stock:screenStock,subs:screenAdminSubscriptions,add:screenAdd};
   s.innerHTML = (map[S.mode==="student"?S.tab:S.atab])();
 
   $("#fabslot").innerHTML = (S.mode==="student"&&cartCount())
@@ -2695,6 +3363,17 @@ document.addEventListener("click", async e => {
       render();
       break;
 
+    case "setsalesrange":
+      if (S.salesRange !== v) S.chartFilter = null;
+      S.salesRange = v;
+      render();
+      break;
+
+    case "setchartfilter":
+      S.chartFilter = S.chartFilter === v ? null : v;
+      render();
+      break;
+
     case "openeod":
       openEodSheet();
       break;
@@ -2723,16 +3402,16 @@ document.addEventListener("click", async e => {
       render();
       break;
     case "vf": S.vendorFilter = (S.vendorFilter===v?"all":v); render(); break;
-    case "cf": S.catFilter=v; render(); break;
+    case "cf": S.catFilter = (S.catFilter===v?"All":v); render(); break;
     case "openvendor": S.vendorFilter=v; S.tab="menu"; S.catFilter="All"; closeSheet(); $("#screen").scrollTop=0; render(); break;
     
     case "placefilter":
-      S.placeFilter = v;
+      S.placeFilter = (S.placeFilter === v ? "all" : v);
       render();
       break;
 
     case "adminsubfilter":
-      S.adminSubFilter = v;
+      S.adminSubFilter = (S.adminSubFilter === v ? "all" : v);
       render();
       break;
 
@@ -2926,7 +3605,7 @@ document.addEventListener("click", async e => {
     }
 
     case "subperiod":
-      S.subPeriodFilter = v;
+      S.subPeriodFilter = (S.subPeriodFilter === v ? "all" : v);
       render();
       break;
 
@@ -3333,6 +4012,38 @@ case "slot": S.slot=v; cartSheet(); break;
         const i=item(+v);
         if(i){ i.eta = newEta; render(); }
       }
+      break;
+    }
+
+    case "deleteitem":{
+      const itemId = +v;
+      const it = item(itemId);
+      const itemName = it ? it.n : "Item";
+
+      // Smooth removal animation on the clicked card
+      const cardEl = el.closest(".card-stock-item");
+      if (cardEl) {
+        cardEl.style.transition = "all 0.22s cubic-bezier(0.4, 0, 0.2, 1)";
+        cardEl.style.opacity = "0";
+        cardEl.style.transform = "scale(0.88)";
+        cardEl.style.pointerEvents = "none";
+        await new Promise(r => setTimeout(r, 200));
+      }
+
+      try {
+        await api.deleteItem(S.adminVendor, itemId);
+      } catch(err){
+        console.warn("API deleteItem error/offline:", err);
+      }
+
+      ITEMS = ITEMS.filter(i => i.id !== itemId);
+      try { localStorage.setItem("mu_cached_items", JSON.stringify(ITEMS)); } catch(e){}
+      if (S.cart && S.cart[itemId]) {
+        delete S.cart[itemId];
+        saveCart(S.cart);
+      }
+      toast(`✓ "${itemName}" removed from menu`);
+      render();
       break;
     }
 

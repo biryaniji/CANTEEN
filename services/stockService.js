@@ -280,11 +280,31 @@ async function resetVendorMenu(vendorId) {
   });
 }
 
+async function deleteMenuItem(itemId, vendorId) {
+  return await db.withTransaction(async (tx) => {
+    const item = await tx.get(
+      `SELECT * FROM menu_items WHERE id = ? AND vendor_id = ?`,
+      [itemId, vendorId]
+    );
+    if (!item) {
+      throw new Error(`Item ${itemId} not found for vendor ${vendorId}`);
+    }
+
+    await tx.run(`DELETE FROM order_items WHERE menu_item_id = ?`, [itemId]);
+    await tx.run(`DELETE FROM stock_ledger WHERE menu_item_id = ?`, [itemId]);
+    await tx.run(`DELETE FROM menu_items WHERE id = ? AND vendor_id = ?`, [itemId, vendorId]);
+
+    wsService.broadcastToAll('ITEM_DELETED', { itemId, vendorId });
+    return { success: true, itemId, vendorId };
+  });
+}
+
 module.exports = {
   updateStockQty,
   refillItem,
   markSoldOut,
   updateEta,
   createMenuItem,
-  resetVendorMenu
+  resetVendorMenu,
+  deleteMenuItem
 };

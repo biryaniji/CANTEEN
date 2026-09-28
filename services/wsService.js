@@ -8,8 +8,8 @@ function initWebSocket(server) {
   wss = new WebSocket.Server({ server, path: '/realtime' });
 
   wss.on('connection', (ws, req) => {
-    const parsedUrl = url.parse(req.url, true);
-    const scopeParam = parsedUrl.query.scope; // e.g. "vendor:cds" or "student:student_kabir" or comma-separated
+    const parsedUrl = new URL(req.url, 'http://localhost');
+    const scopeParam = parsedUrl.searchParams.get('scope'); // e.g. "vendor:cds" or "student:student_kabir" or comma-separated
 
     const clientInfo = {
       ws,
