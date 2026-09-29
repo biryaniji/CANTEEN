@@ -83,7 +83,7 @@ input,select{font-family:inherit}
 .iconbtn{width:40px;height:40px;border-radius:50%;background:var(--surface-2);display:grid;place-items:center;position:relative;flex:none}
 .iconbtn .dot{position:absolute;top:-2px;right:-2px;min-width:19px;height:19px;padding:0 4px;border-radius:999px;background:var(--red);color:#fff;font-size:10.5px;font-weight:600;display:grid;place-items:center;border:2px solid var(--bg)}
 
-.screen{flex:1;overflow-y:auto;overflow-x:hidden;padding:0 18px 128px;scrollbar-width:none}
+.screen{flex:1;overflow-y:auto;overflow-x:hidden;padding:0 18px 128px;scrollbar-width:thin;scrollbar-color:rgba(234,179,8,0.4) rgba(255,255,255,0.04)}
 .screen::-webkit-scrollbar{display:none}
 
 /* ---------- shared bits ---------- */
@@ -377,9 +377,9 @@ input,select{font-family:inherit}
 
   .fab{left:278px;right:28px;bottom:26px;width:auto}
 
-  .itemgrid{display:block !important}
-  .itemgrid .item{margin-bottom:14px}
-  .item{min-height:150px}
+  .itemgrid{display:grid !important;grid-template-columns:repeat(2, minmax(0, 1fr)) !important;gap:12px !important}
+  .itemgrid .item{margin-bottom:0}
+  .item{min-height:130px}
   .cardgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .cardgrid>.card{margin-bottom:0}
 
@@ -1560,7 +1560,27 @@ function screenMenu(){
   ` : ''}
 
   <div class="tiny muted" style="margin-bottom:12px">${list.length} items · stock updated live by vendors</div>
-  ${list.length?`<div class="itemgrid">${list.map(itemCard).join("")}</div>`:`<div class="empty"><div class="e">🍽️</div>Nothing matches that filter.<br>Try another vendor or clear the search.</div>`}
+  ${list.length ? (
+    (S.vendorFilter === "all" && !S.q)
+      ? VENDORS.map(v => {
+          const vItems = list.filter(i => i.v === v.id);
+          if(!vItems.length) return "";
+          return `
+            <div class="sec" style="margin:22px 0 10px;display:flex;justify-content:space-between;align-items:center">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:22px">${v.emoji}</span>
+                <div>
+                  <h2 style="font-size:16px;margin:0">${esc(v.name)}</h2>
+                  <span class="tiny muted">${esc(v.floor)} · Ready in ${v.prep} min · ${vItems.length} items</span>
+                </div>
+              </div>
+              <button class="link" data-act="vf" data-v="${v.id}" style="font-size:12px">View Stall ${icons.chev}</button>
+            </div>
+            <div class="itemgrid">${vItems.map(itemCard).join("")}</div>
+          `;
+        }).join("")
+      : `<div class="itemgrid">${list.map(itemCard).join("")}</div>`
+  ) : `<div class="empty"><div class="e">🍽️</div>Nothing matches that filter.<br>Try another vendor or clear the search.</div>`}
   `;
 }
 
