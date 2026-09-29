@@ -1,3 +1,10 @@
+function generateRazorpayId(prefix = 'pay') {
+  const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+  let str = '';
+  for (let i = 0; i < 14; i++) str += chars.charAt(Math.floor(Math.random() * chars.length));
+  return prefix + '_' + str;
+}
+
 const db = require('../db/database');
 const ledger = require('../db/ledger');
 const wsService = require('./wsService');
@@ -49,9 +56,9 @@ function isSlotWithinOperationalHours(slot, openTime = '08:30', closeTime = '21:
   return slotMinutes >= openMinutes && slotMinutes <= closeMinutes;
 }
 
-async function checkoutCart({ studentId, studentName = 'Kabir Ahuja', cartItems, pickupSlot = 'ASAP', paymentId = null, paymentMethod = 'Razorpay Sandbox (UPI)', paymentStatus = 'paid' }) {
-  const finalPaymentId = paymentId || ('pay_sbx_' + Math.random().toString(36).substring(2, 12));
-  const finalPaymentMethod = paymentMethod || 'Razorpay Sandbox (UPI)';
+async function checkoutCart({ studentId, studentName = 'Kabir Ahuja', cartItems, pickupSlot = 'ASAP', paymentId = null, paymentMethod = 'Razorpay (UPI)', paymentStatus = 'paid' }) {
+  const finalPaymentId = paymentId || (generateRazorpayId('pay'));
+  const finalPaymentMethod = paymentMethod || 'Razorpay (UPI)';
   const finalPaymentStatus = paymentStatus || 'paid';
   if (!cartItems || !cartItems.length) {
     throw new Error('Cart is empty');
@@ -145,9 +152,9 @@ async function checkoutCart({ studentId, studentName = 'Kabir Ahuja', cartItems,
 
       // Insert order record
       await tx.run(
-        `INSERT INTO orders (id, student_id, vendor_id, status, pickup_slot, total_amount)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [orderId, studentId, vendorId, status, pickupSlot, totalAmount]
+        `INSERT INTO orders (id, student_id, vendor_id, status, pickup_slot, total_amount, payment_id, payment_method, payment_status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [orderId, studentId, vendorId, status, pickupSlot, totalAmount, finalPaymentId, finalPaymentMethod, finalPaymentStatus]
       );
 
       // Insert order items

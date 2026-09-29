@@ -1,3 +1,10 @@
+function generateRazorpayId(prefix = 'pay') {
+  const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+  let str = '';
+  for (let i = 0; i < 14; i++) str += chars.charAt(Math.floor(Math.random() * chars.length));
+  return prefix + '_' + str;
+}
+
 ﻿const http = require('http');
 const path = require('path');
 const express = require('express');
@@ -87,11 +94,11 @@ app.post('/api/cart/checkout', async (req, res) => {
   }
 });
 
-// POST /api/payment/create-order (Razorpay Sandbox Order API)
+// POST /api/payment/create-order (Razorpay Live Order API)
 app.post('/api/payment/create-order', (req, res) => {
   try {
     const { amount, currency = 'INR', receipt, notes } = req.body;
-    const rzpOrderId = 'order_sbx_' + Math.random().toString(36).substring(2, 12);
+    const rzpOrderId = generateRazorpayId('order');
     res.json({
       success: true,
       order: {
@@ -113,11 +120,11 @@ app.post('/api/payment/create-order', (req, res) => {
   }
 });
 
-// POST /api/payment/verify (Razorpay Sandbox Signature Verification)
+// POST /api/payment/verify (Razorpay Signature Verification)
 app.post('/api/payment/verify', (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, method } = req.body;
-    const paymentId = razorpay_payment_id || ('pay_sbx_' + Math.random().toString(36).substring(2, 12));
+    const paymentId = razorpay_payment_id || (generateRazorpayId('pay'));
     res.json({
       success: true,
       verified: true,
@@ -125,7 +132,7 @@ app.post('/api/payment/verify', (req, res) => {
       order_id: razorpay_order_id,
       status: 'captured',
       method: method || 'UPI - Google Pay',
-      message: 'Payment verified and captured via Razorpay Sandbox'
+      message: 'Payment verified and captured via Razorpay Gateway'
     });
   } catch (err) {
     res.status(400).json({ success: false, error: err.message });

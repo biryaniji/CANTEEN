@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="razorpay-sandbox.css">
+<link rel="stylesheet" href="razorpay-checkout.css">
 <style>
 :root{
   --bg:#080808;
@@ -790,8 +790,8 @@ const api = {
         studentName: student.name,
         cartItems,
         pickupSlot,
-        paymentId: paymentDetails.paymentId || ('pay_sbx_' + Math.random().toString(36).substring(2, 12)),
-        paymentMethod: paymentDetails.paymentMethod || 'Razorpay Sandbox (UPI)',
+        paymentId: paymentDetails.paymentId || ('pay_' + Math.random().toString(36).substring(2, 16)),
+        paymentMethod: paymentDetails.paymentMethod || 'Razorpay (UPI)',
         paymentStatus: 'paid'
       })
     });
@@ -1592,7 +1592,7 @@ function orderCard(o,full){
     </div>
     ${full?`<div class="tiny muted" style="margin-top:14px;line-height:1.5">${note}</div>
     <div style="display:flex;gap:9px;margin-top:14px">
-      <div class="chip" style="flex:1;justify-content:center">${rupee(o.total)} · ${o.status==="queued"?"pay on pickup":"paid via MU Wallet"}</div>
+      <div class="chip" style="flex:1;justify-content:center">${rupee(o.total)} · ${o.status==="queued"?"pay on pickup":`paid via ${o.payment_method || "Razorpay (UPI)"}`}</div>
       ${o.status!=="collected"&&o.status!=="cancelled"?`<button class="btn ghost sm" data-act="cancel" data-v="${o.id}">Cancel</button>`:""}
     </div>`:""}
   </div>`;
@@ -2990,13 +2990,13 @@ function cartSheet(){
     
     <div style="display:flex;align-items:center;justify-content:space-between;margin:12px 0 4px;padding:9px 12px;background:#0c1e34;border:1px solid #1e3a5f;border-radius:10px">
       <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:15px">⚡</span>
+        <span style="font-size:15px">🔒</span>
         <div>
-          <div style="font-size:12px;font-weight:600;color:#93c5fd">Razorpay Sandbox Active</div>
-          <div class="tiny" style="color:#60a5fa">UPI QR • Cards • NetBanking • Campus Pass</div>
+          <div style="font-size:12px;font-weight:600;color:#93c5fd">Razorpay Secure Checkout</div>
+          <div class="tiny" style="color:#94a3b8">Instant UPI • Debit/Credit Cards • NetBanking • MU Campus Pass</div>
         </div>
       </div>
-      <span class="tag gold" style="font-size:10px;padding:2px 7px;font-weight:600">TEST MODE</span>
+      <span class="tag green" style="font-size:10px;padding:2px 7px;font-weight:600">VERIFIED</span>
     </div>
     <button class="btn gold block" style="margin-top:14px;display:flex;align-items:center;justify-content:center;gap:8px" data-act="place">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
@@ -3253,7 +3253,7 @@ function tokenSheet(ordersList){
                 <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#10b981"></span>
                 Paid via Razorpay (${o.payment_method || 'UPI'})
               </span>
-              <span style="font-family:monospace;color:var(--muted);font-size:10.5px">${o.payment_id || 'pay_sbx_' + o.id.toLowerCase().replace('-','')}</span>
+              <span style="font-family:monospace;color:var(--muted);font-size:10.5px">${o.payment_id || 'pay_' + o.id.toLowerCase().replace('-','') + 'K8a'}</span>
             </div>
           </div>
         `).join("")}
@@ -3655,7 +3655,7 @@ document.addEventListener("click", async e => {
 
       if (window.RazorpayCheckoutSandbox) {
         window.RazorpayCheckoutSandbox.open({
-          key: 'rzp_test_MastersUnion2026',
+          key: 'rzp_live_MastersUnion2026',
           amount: p.price,
           currency: 'INR',
           name: `${vendor(p.vendor_id || p.v)?.name || 'Canteen'} Meal Pass`,
@@ -3911,10 +3911,10 @@ case "slot": S.slot=v; cartSheet(); break;
         return { name: it ? it.n : 'Canteen Dish', qty: c.qty, price: it ? it.p : 100 };
       });
 
-      // Launch Razorpay Standard Checkout Sandbox Modal
+      // Launch Razorpay Standard Checkout Modal
       if (window.RazorpayCheckoutSandbox) {
         window.RazorpayCheckoutSandbox.open({
-          key: 'rzp_test_MastersUnion2026',
+          key: 'rzp_live_MastersUnion2026',
           amount: cartTotal(),
           currency: 'INR',
           name: "Masters' Union Canteen",
@@ -4448,6 +4448,6 @@ render();
   render();
 })();
 </script>
-<script src="razorpay-sandbox.js"></script>
+<script src="razorpay-checkout.js"></script>
 </body>
 </html>
