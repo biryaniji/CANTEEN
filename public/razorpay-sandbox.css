@@ -1,0 +1,1043 @@
+/* =====================================================================
+   RAZORPAY STANDARD CHECKOUT (SANDBOX TEST MODE) - STYLESHEET
+   Authentic Razorpay UI/UX theme for Masters' Union Canteen
+   ===================================================================== */
+
+:root {
+  --rzp-primary: #0c2340;
+  --rzp-primary-dark: #07172c;
+  --rzp-accent: #2b83ea;
+  --rzp-accent-hover: #1b6fd1;
+  --rzp-accent-light: #eaf3fe;
+  --rzp-bg: #ffffff;
+  --rzp-sidebar: #f8fafc;
+  --rzp-sidebar-active: #ffffff;
+  --rzp-text: #1d2939;
+  --rzp-muted: #667085;
+  --rzp-subtle: #98a2b3;
+  --rzp-border: #e4e7ec;
+  --rzp-success: #12b76a;
+  --rzp-success-bg: #edfcf2;
+  --rzp-warning: #f79009;
+  --rzp-warning-bg: #fffaeb;
+  --rzp-danger: #f04438;
+  --rzp-danger-bg: #fef3f2;
+  --rzp-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --rzp-shadow-modal: 0 25px 60px -15px rgba(12, 35, 64, 0.45), 0 0 1px 1px rgba(12, 35, 64, 0.1);
+}
+
+/* Modal Overlay & Backdrop */
+.rzp-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 18, 33, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.rzp-backdrop.rzp-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Main Modal Window */
+.rzp-modal {
+  position: relative;
+  width: 740px;
+  max-width: 100%;
+  height: 580px;
+  max-height: calc(100vh - 32px);
+  background: var(--rzp-bg);
+  border-radius: 18px;
+  box-shadow: var(--rzp-shadow-modal);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transform: scale(0.95) translateY(14px);
+  opacity: 0;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.24s ease;
+  font-family: var(--rzp-font);
+  color: var(--rzp-text);
+}
+
+.rzp-backdrop.rzp-open .rzp-modal {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+
+/* Top Signature Header */
+.rzp-header {
+  background: linear-gradient(135deg, #0c2340 0%, #153860 100%);
+  color: #ffffff;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  user-select: none;
+}
+
+.rzp-merchant-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rzp-merchant-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.rzp-merchant-avatar .rzp-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 700;
+  background: #0c2340;
+  color: #f59e0b;
+}
+
+.rzp-merchant-meta h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #ffffff;
+}
+
+.rzp-verified-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #2b83ea;
+  color: #ffffff;
+  font-size: 10px;
+}
+
+.rzp-merchant-meta .rzp-order-summary-link {
+  font-size: 12px;
+  color: #9cb3ce;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  transition: color 0.15s;
+}
+
+.rzp-merchant-meta .rzp-order-summary-link:hover {
+  color: #ffffff;
+}
+
+.rzp-header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.rzp-amount-badge {
+  text-align: right;
+}
+
+.rzp-amount-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #9cb3ce;
+  font-weight: 500;
+}
+
+.rzp-amount-val {
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.4px;
+}
+
+.rzp-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: #d1d5db;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.rzp-close-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  transform: scale(1.05);
+}
+
+/* Sandbox Ribbon / Live Test Bar */
+.rzp-test-ribbon {
+  background: #fff8e6;
+  border-bottom: 1px solid #fedf89;
+  padding: 6px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #93370d;
+}
+
+.rzp-test-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.rzp-pulse-beacon {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f79009;
+  position: relative;
+}
+
+.rzp-pulse-beacon::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: rgba(247, 144, 9, 0.4);
+  animation: rzp-pulse 1.8s infinite;
+}
+
+@keyframes rzp-pulse {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+.rzp-test-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rzp-test-btn {
+  background: #ffffff;
+  border: 1px solid #fec84b;
+  color: #b54708;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.rzp-test-btn:hover {
+  background: #fef0c7;
+  color: #7a2e0e;
+}
+
+.rzp-test-btn.danger {
+  border-color: #fda29b;
+  color: #b42318;
+}
+
+.rzp-test-btn.danger:hover {
+  background: #fee4e2;
+  color: #912018;
+}
+
+/* Modal Body Layout */
+.rzp-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+/* Left Navigation Sidebar */
+.rzp-sidebar {
+  width: 235px;
+  background: var(--rzp-sidebar);
+  border-right: 1px solid var(--rzp-border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+
+.rzp-nav-group-title {
+  padding: 14px 16px 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--rzp-muted);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.rzp-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  position: relative;
+  color: var(--rzp-text);
+  font-family: inherit;
+}
+
+.rzp-nav-item:hover {
+  background: #edf2f7;
+}
+
+.rzp-nav-item.active {
+  background: #ffffff;
+  font-weight: 600;
+  color: var(--rzp-accent);
+}
+
+.rzp-nav-item.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 4px;
+  background: var(--rzp-accent);
+  border-radius: 0 4px 4px 0;
+}
+
+.rzp-nav-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--rzp-muted);
+  flex-shrink: 0;
+}
+
+.rzp-nav-item.active .rzp-nav-icon {
+  color: var(--rzp-accent);
+}
+
+.rzp-nav-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.rzp-nav-title {
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.rzp-nav-subtitle {
+  font-size: 10.5px;
+  color: var(--rzp-muted);
+  margin-top: 1px;
+}
+
+.rzp-badge-mini {
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #d1fadf;
+  color: #027a48;
+}
+
+.rzp-badge-mini.gold {
+  background: #fef0c7;
+  color: #b54708;
+}
+
+/* Right Content Area */
+.rzp-content-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 18px 22px;
+  min-height: 0;
+}
+
+.rzp-tab-panel {
+  display: none;
+  animation: rzp-fade-in 0.2s ease;
+}
+
+.rzp-tab-panel.active {
+  display: block;
+}
+
+@keyframes rzp-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* UPI Tab Styles */
+.rzp-upi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.rzp-upi-seg {
+  display: inline-flex;
+  background: #f2f4f7;
+  padding: 3px;
+  border-radius: 8px;
+}
+
+.rzp-upi-seg-btn {
+  border: none;
+  background: transparent;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--rzp-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.rzp-upi-seg-btn.active {
+  background: #ffffff;
+  color: var(--rzp-text);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.1);
+}
+
+.rzp-qr-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 4px 0;
+}
+
+.rzp-qr-card {
+  position: relative;
+  background: #ffffff;
+  border: 1.5px solid #eaecf0;
+  border-radius: 14px;
+  padding: 12px;
+  display: inline-block;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.rzp-qr-laser {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #2b83ea, transparent);
+  box-shadow: 0 0 10px #2b83ea;
+  animation: rzp-laser-scan 2.4s infinite ease-in-out;
+  pointer-events: none;
+}
+
+@keyframes rzp-laser-scan {
+  0% { top: 8%; opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { top: 92%; opacity: 0; }
+}
+
+.rzp-qr-svg {
+  width: 155px;
+  height: 155px;
+  display: block;
+}
+
+.rzp-qr-timer {
+  font-size: 12px;
+  color: var(--rzp-muted);
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rzp-qr-timer b {
+  color: var(--rzp-text);
+  font-family: monospace;
+  font-size: 13px;
+}
+
+.rzp-upi-apps-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.rzp-upi-app-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: #344054;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 3px 8px;
+  border-radius: 16px;
+}
+
+/* Fast Action Buttons */
+.rzp-btn-pay {
+  background: #2b83ea;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 18px;
+  font-size: 14.5px;
+  font-weight: 600;
+  width: 100%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.15s;
+  box-shadow: 0 4px 14px rgba(43, 131, 234, 0.35);
+  margin-top: 14px;
+  font-family: inherit;
+}
+
+.rzp-btn-pay:hover {
+  background: #1b6fd1;
+  box-shadow: 0 6px 18px rgba(43, 131, 234, 0.45);
+  transform: translateY(-1px);
+}
+
+.rzp-btn-pay:active {
+  transform: translateY(0);
+}
+
+.rzp-btn-pay.success {
+  background: #12b76a;
+  box-shadow: 0 4px 14px rgba(18, 183, 106, 0.35);
+}
+
+.rzp-btn-pay.success:hover {
+  background: #0e9f5d;
+}
+
+/* Cards Tab Styles */
+.rzp-card-preview {
+  width: 250px;
+  height: 140px;
+  background: linear-gradient(135deg, #1f2937 0%, #0f172a 100%);
+  border-radius: 12px;
+  padding: 14px;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  margin: 0 auto 12px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.rzp-card-preview::before {
+  content: "";
+  position: absolute;
+  top: -30px;
+  right: -30px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(43, 131, 234, 0.3) 0%, transparent 70%);
+}
+
+.rzp-card-chip {
+  width: 28px;
+  height: 20px;
+  background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.rzp-card-num-display {
+  font-family: monospace;
+  font-size: 14px;
+  letter-spacing: 2px;
+  color: #f3f4f6;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.rzp-card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  font-size: 9.5px;
+  text-transform: uppercase;
+  color: #9ca3af;
+}
+
+.rzp-card-holder-name {
+  font-size: 11.5px;
+  color: #ffffff;
+  font-weight: 500;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  letter-spacing: 0.5px;
+}
+
+.rzp-input-group {
+  margin-bottom: 10px;
+}
+
+.rzp-label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #344054;
+  margin-bottom: 4px;
+}
+
+.rzp-input {
+  width: 100%;
+  padding: 8px 11px;
+  font-size: 13px;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  color: #1d2939;
+  background: #ffffff;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  font-family: inherit;
+}
+
+.rzp-input:focus {
+  border-color: #2b83ea;
+  box-shadow: 0 0 0 3px rgba(43, 131, 234, 0.15);
+}
+
+.rzp-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* Preset Test Cards Dropdown */
+.rzp-preset-select {
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 11.5px;
+  background: #f8fafc;
+  border: 1px dashed #2b83ea;
+  border-radius: 8px;
+  color: #1e40af;
+  margin-bottom: 10px;
+  cursor: pointer;
+  outline: none;
+}
+
+/* Netbanking Grid */
+.rzp-banks-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+  margin-bottom: 12px;
+}
+
+.rzp-bank-card {
+  border: 1px solid #e4e7ec;
+  border-radius: 10px;
+  padding: 9px 6px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: #ffffff;
+}
+
+.rzp-bank-card:hover {
+  border-color: #2b83ea;
+  background: #f8fafc;
+}
+
+.rzp-bank-card.active {
+  border-color: #2b83ea;
+  background: #eff6ff;
+  box-shadow: 0 0 0 2px rgba(43, 131, 234, 0.2);
+}
+
+.rzp-bank-logo {
+  width: 26px;
+  height: 26px;
+  margin: 0 auto 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 6px;
+  color: #ffffff;
+}
+
+.rzp-bank-name {
+  font-size: 11px;
+  font-weight: 500;
+  color: #344054;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Wallets list */
+.rzp-wallet-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border: 1px solid #e4e7ec;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.rzp-wallet-option:hover {
+  border-color: #2b83ea;
+  background: #f8fafc;
+}
+
+.rzp-wallet-option.active {
+  border-color: #2b83ea;
+  background: #eff6ff;
+}
+
+/* Student Meal Card */
+.rzp-student-pass-card {
+  background: linear-gradient(135deg, #182230 0%, #0c111d 100%);
+  border: 1px solid #344054;
+  border-radius: 14px;
+  padding: 16px;
+  color: #ffffff;
+  margin-bottom: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+.rzp-student-pass-card::after {
+  content: "MU";
+  position: absolute;
+  right: -8px;
+  bottom: -18px;
+  font-size: 72px;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.05);
+  pointer-events: none;
+}
+
+.rzp-student-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.rzp-student-chip {
+  font-size: 11px;
+  font-weight: 600;
+  background: #f59e0b;
+  color: #78350f;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+/* Footer & Security Bar */
+.rzp-footer {
+  padding: 10px 20px;
+  background: #f8fafc;
+  border-top: 1px solid var(--rzp-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: var(--rzp-muted);
+}
+
+.rzp-footer-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rzp-brand-logo {
+  font-weight: 800;
+  color: #0c2340;
+  letter-spacing: -0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.rzp-brand-logo span {
+  color: #2b83ea;
+}
+
+/* =====================================================================
+   GATEWAY PROCESSING & VERIFICATION OVERLAYS
+   ===================================================================== */
+
+.rzp-overlay-state {
+  position: absolute;
+  inset: 0;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 24px;
+  text-align: center;
+  animation: rzp-fade-in 0.25s ease;
+}
+
+/* Processing Spinner */
+.rzp-dual-ring-spinner {
+  width: 54px;
+  height: 54px;
+  border: 4px solid #f2f4f7;
+  border-top-color: #2b83ea;
+  border-bottom-color: #0c2340;
+  border-radius: 50%;
+  animation: rzp-spin 0.9s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+  margin-bottom: 18px;
+}
+
+@keyframes rzp-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Success Animation */
+.rzp-success-circle {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #edfcf2;
+  border: 2px solid #12b76a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  color: #12b76a;
+  animation: rzp-bounce 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes rzp-bounce {
+  0% { transform: scale(0.4); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.rzp-success-details {
+  background: #f8fafc;
+  border: 1px solid #e4e7ec;
+  border-radius: 12px;
+  padding: 12px 18px;
+  width: 100%;
+  max-width: 360px;
+  margin: 12px 0 16px;
+  text-align: left;
+  font-size: 12px;
+}
+
+.rzp-success-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+  color: #475467;
+}
+
+.rzp-success-row b {
+  color: #1d2939;
+  font-family: monospace;
+}
+
+/* Failure State */
+.rzp-danger-circle {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #fef3f2;
+  border: 2px solid #f04438;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  color: #f04438;
+  animation: rzp-shake 0.4s ease-in-out;
+}
+
+@keyframes rzp-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+/* 3D Bank OTP Window */
+.rzp-otp-container {
+  background: #ffffff;
+  border: 1px solid #e4e7ec;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  width: 100%;
+  max-width: 360px;
+  padding: 20px;
+  text-align: center;
+}
+
+.rzp-otp-bank-header {
+  border-bottom: 1px solid #eaecf0;
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rzp-otp-boxes {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.rzp-otp-digit {
+  width: 38px;
+  height: 44px;
+  border: 1.5px solid #d0d5dd;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 19px;
+  font-weight: 700;
+  outline: none;
+  font-family: monospace;
+  color: #1d2939;
+}
+
+.rzp-otp-digit:focus {
+  border-color: #2b83ea;
+  box-shadow: 0 0 0 3px rgba(43, 131, 234, 0.15);
+}
+
+/* Order Breakdown Dropdown Drawer */
+.rzp-order-drawer {
+  position: absolute;
+  top: 76px;
+  left: 20px;
+  width: 320px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+  border: 1px solid #e4e7ec;
+  z-index: 20;
+  padding: 14px;
+  display: none;
+  color: #1d2939;
+}
+
+.rzp-order-drawer.show {
+  display: block;
+  animation: rzp-fade-in 0.2s ease;
+}
+
+.rzp-drawer-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 6px 0;
+  border-bottom: 1px solid #f2f4f7;
+}
+
+.rzp-drawer-total {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  font-size: 14px;
+  padding-top: 8px;
+  color: #0c2340;
+}
+
+/* Responsive adjustments */
+@media (max-width: 680px) {
+  .rzp-modal {
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+  .rzp-body {
+    flex-direction: column;
+  }
+  .rzp-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--rzp-border);
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    padding: 6px;
+  }
+  .rzp-nav-group-title {
+    display: none;
+  }
+  .rzp-nav-item {
+    padding: 8px 12px;
+    border-radius: 8px;
+    white-space: nowrap;
+    width: auto;
+  }
+  .rzp-nav-item.active::before {
+    display: none;
+  }
+  .rzp-banks-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="razorpay-sandbox.css">
 <style>
 :root{
   --bg:#080808;
@@ -779,12 +780,20 @@ const api = {
       status_updated_at: o.status_updated_at
     }));
   },
-  async checkout(cartItems, pickupSlot){
+  async checkout(cartItems, pickupSlot, paymentDetails = {}){
     const student = getStudent();
     const res = await fetch('/api/cart/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-student-id': student.id },
-      body: JSON.stringify({ studentId: student.id, studentName: student.name, cartItems, pickupSlot })
+      body: JSON.stringify({
+        studentId: student.id,
+        studentName: student.name,
+        cartItems,
+        pickupSlot,
+        paymentId: paymentDetails.paymentId || ('pay_sbx_' + Math.random().toString(36).substring(2, 12)),
+        paymentMethod: paymentDetails.paymentMethod || 'Razorpay Sandbox (UPI)',
+        paymentStatus: 'paid'
+      })
     });
     const data = await res.json();
     if(!res.ok) throw new Error(data.error || 'Checkout failed');
@@ -2638,7 +2647,10 @@ function screenAdminOrders(){
           <div style="font-size:17px;font-weight:600">${o.id}</div>
           <div class="tiny muted" style="margin-top:3px">${esc(o.who||"Student")} · placed ${o.t||"just now"} · pickup ${o.slot}</div>
         </div>
-        <span class="tag ${o.status==="queued"?"orange":o.status==="ready"?"green":"gold"}">${o.status==="queued"?"Pre-booked":o.status==="placed"?"New":o.status==="preparing"?"Cooking":"Ready"}</span>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          <span class="tag ${o.status==="queued"?"orange":o.status==="ready"?"green":"gold"}">${o.status==="queued"?"Pre-booked":o.status==="placed"?"New":o.status==="preparing"?"Cooking":"Ready"}</span>
+          <span class="tag green" style="font-size:10px;padding:1px 6px;letter-spacing:0">Razorpay Paid</span>
+        </div>
       </div>
       <div style="margin:13px 0;display:flex;flex-direction:column;gap:7px">
         ${o.lines.map(l=>`<div style="display:flex;gap:10px;align-items:center;font-size:14px">
@@ -2975,7 +2987,21 @@ function cartSheet(){
       <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:600;margin-top:11px;padding-top:11px;border-top:1px solid var(--line)"><span>Pay on pickup</span><span>${rupee(cartTotal())}</span></div>
     </div>
     ${pre.length?`<div class="tiny" style="color:var(--orange);margin-top:12px;line-height:1.5">${pre.length} item${pre.length>1?"s are":" is"} out of stock. It'll be queued and confirmed the second the vendor restocks — you'll get a notification.</div>`:""}
-    <button class="btn gold block" style="margin-top:16px" data-act="place">${hasPrebook()?"Place order &amp; pre-book":"Place order"}</button>
+    
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:12px 0 4px;padding:9px 12px;background:#0c1e34;border:1px solid #1e3a5f;border-radius:10px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:15px">⚡</span>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:#93c5fd">Razorpay Sandbox Active</div>
+          <div class="tiny" style="color:#60a5fa">UPI QR • Cards • NetBanking • Campus Pass</div>
+        </div>
+      </div>
+      <span class="tag gold" style="font-size:10px;padding:2px 7px;font-weight:600">TEST MODE</span>
+    </div>
+    <button class="btn gold block" style="margin-top:14px;display:flex;align-items:center;justify-content:center;gap:8px" data-act="place">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      ${hasPrebook() ? "Proceed to Razorpay &amp; Pre-book" : "Pay with Razorpay (" + rupee(cartTotal()) + ")"}
+    </button>
   `);
 }
 
@@ -3043,7 +3069,7 @@ function subDetailSheet(planId){
       </div>
 
       <button class="btn gold block" data-act="confirmsubscribe" data-v="${p.id}">
-        Confirm &amp; Activate Pass (${rupee(p.price)})
+        ⚡ Pay with Razorpay (${rupee(p.price)})
       </button>
     </div>
   `);
@@ -3220,7 +3246,15 @@ function tokenSheet(ordersList){
               <span class="tag ${o.status==='queued'?'orange':'gold'}">${o.status==='queued'?'Pre-booked':(o.slot || S.slot)}</span>
             </div>
             <div style="font-size:28px;font-weight:700;letter-spacing:-.8px;margin:6px 0 2px">${o.id}</div>
-            <div class="tiny muted">${(o.lines||[]).map(l => `${l.q}× ${esc(item(l.i)?.n || l.n || 'Item')}`).join(' · ')} · ${rupee(o.total || o.total_amount)}</div>
+            <div class="tiny muted">${(o.lines||[]).map(l => `${l.q}x ${esc(item(l.i)?.n || l.n || 'Item')}`).join(' • ')} • ${rupee(o.total || o.total_amount)}</div>
+            
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px dashed rgba(255,255,255,0.12);font-size:11.5px">
+              <span style="color:#10b981;display:inline-flex;align-items:center;gap:5px;font-weight:500">
+                <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#10b981"></span>
+                Paid via Razorpay (${o.payment_method || 'UPI'})
+              </span>
+              <span style="font-family:monospace;color:var(--muted);font-size:10.5px">${o.payment_id || 'pay_sbx_' + o.id.toLowerCase().replace('-','')}</span>
+            </div>
           </div>
         `).join("")}
       </div>
@@ -3615,39 +3649,69 @@ document.addEventListener("click", async e => {
 
     case "confirmsubscribe":{
       const planId = +v;
-      try {
-        const createdSub = await api.subscribePlan(planId);
-        await refreshMySubscriptions();
-        await refreshSubscriptions();
-        closeSheet();
-        toast("🎉 Pass activated! Show token at counter to redeem.");
-        subPassSheet(createdSub);
-        render();
-      } catch(err){
-        const p = subPlan(planId);
-        if(p){
-          const localSub = {
-            id: "MU-SUB-" + (100 + MY_SUBSCRIPTIONS.length + 1),
-            student_id: getStudent().id,
-            plan_id: p.id,
-            vendor_id: p.vendor_id || p.v,
-            status: "active",
-            plan_name: p.name,
-            period: p.period,
-            items_included: p.items_included,
-            description: p.description,
-            emoji: p.emoji,
-            vendor_name: vendor(p.vendor_id || p.v).name,
-            vendor_floor: vendor(p.vendor_id || p.v).floor,
-            days_left: p.period === 'monthly' ? 30 : 7,
-            amount_paid: p.price
-          };
-          MY_SUBSCRIPTIONS.unshift(localSub);
+      const p = subPlan(planId);
+      if(!p) break;
+      closeSheet();
+
+      if (window.RazorpayCheckoutSandbox) {
+        window.RazorpayCheckoutSandbox.open({
+          key: 'rzp_test_MastersUnion2026',
+          amount: p.price,
+          currency: 'INR',
+          name: `${vendor(p.vendor_id || p.v)?.name || 'Canteen'} Meal Pass`,
+          description: `${p.name} (${p.period === 'monthly' ? 'Monthly Pass' : 'Weekly Pass'})`,
+          image: '🎫',
+          prefill: {
+            name: getStudent().name || 'Kabir Ahuja',
+            email: 'kabir.ahuja@mastersunion.org',
+            contact: '+91 98765 43210'
+          },
+          handler: async function(paymentResponse) {
+            try {
+              const createdSub = await api.subscribePlan(planId);
+              await refreshMySubscriptions();
+              await refreshSubscriptions();
+              toast(`🟢 Pass activated via Razorpay! Ref: ${paymentResponse.razorpay_payment_id}`);
+              subPassSheet(createdSub);
+              render();
+            } catch(err){
+              const localSub = {
+                id: "MU-SUB-" + (100 + MY_SUBSCRIPTIONS.length + 1),
+                student_id: getStudent().id,
+                plan_id: p.id,
+                plan_name: p.name,
+                vendor_id: p.vendor_id || p.v,
+                vendor_name: vendor(p.vendor_id || p.v).name,
+                period: p.period,
+                price_paid: p.price,
+                status: 'active',
+                start_date: new Date().toISOString(),
+                end_date: new Date(Date.now() + (p.period === 'monthly' ? 30 : 7) * 86400000).toISOString(),
+                remaining_days: p.period === 'monthly' ? 30 : 7,
+                qr_token: 'TOKEN-MU-' + p.id
+              };
+              MY_SUBSCRIPTIONS.unshift(localSub);
+              toast(`🟢 Pass activated via Razorpay! Ref: ${paymentResponse.razorpay_payment_id}`);
+              subPassSheet(localSub);
+              render();
+            }
+          },
+          modal: {
+            ondismiss: function() {
+              toast("Meal pass payment cancelled.");
+            }
+          }
+        });
+      } else {
+        try {
+          const createdSub = await api.subscribePlan(planId);
+          await refreshMySubscriptions();
+          await refreshSubscriptions();
           closeSheet();
-          toast("🎉 Pass activated! Show token at counter to redeem.");
-          subPassSheet(localSub);
+          toast("🎫 Pass activated! Show token at counter to redeem.");
+          subPassSheet(createdSub);
           render();
-        } else {
+        } catch(err){
           toast(`⚠️ ${err.message}`);
         }
       }
@@ -3839,43 +3903,94 @@ case "slot": S.slot=v; cartSheet(); break;
         }
       }
 
-      // Try full-stack checkout first, fall back to in-memory simulation
-      try {
-        const createdOrders = await api.checkout(cartItems, S.slot);
-        S.cart = {}; saveCart(S.cart);
-        await refreshAllData();
-        S.tab = "orders";
-        render();
-        tokenSheet(createdOrders);
-      } catch(err){
-        if (location.protocol === 'file:' || err.message.includes('Failed to fetch')) {
-          // In-memory fallback
-          const ids = Object.keys(S.cart).map(Number);
-          const byV = {};
-          ids.forEach(id => { (byV[item(id).v] ||= []).push(id); });
-          const localCreated = [];
-          Object.entries(byV).forEach(([vn, list]) => {
-            const pre = list.some(id => item(id).stock === 0);
-            const o = {
-              id: "MU-" + (430 + ORDERS.length),
-              v: vn,
-              lines: list.map(id => ({ i: id, q: S.cart[id], p: item(id).p, n: item(id).n, e: item(id).e })),
-              total: list.reduce((a, id) => a + item(id).p * S.cart[id], 0),
-              status: pre ? "queued" : "placed",
-              slot: S.slot,
-              mine: true,
-              who: getStudent().name,
-              t: "just now"
-            };
-            list.forEach(id => { const it = item(id); if(it.stock > 0) it.stock = Math.max(0, it.stock - S.cart[id]); });
-            ORDERS.push(o);
-            localCreated.push(o);
-          });
-          S.cart = {};
+      closeSheet();
+
+      const student = getStudent();
+      const detailedItems = cartItems.map(c => {
+        const it = item(c.itemId);
+        return { name: it ? it.n : 'Canteen Dish', qty: c.qty, price: it ? it.p : 100 };
+      });
+
+      // Launch Razorpay Standard Checkout Sandbox Modal
+      if (window.RazorpayCheckoutSandbox) {
+        window.RazorpayCheckoutSandbox.open({
+          key: 'rzp_test_MastersUnion2026',
+          amount: cartTotal(),
+          currency: 'INR',
+          name: "Masters' Union Canteen",
+          description: `${cartItems.length} dish items • Pickup: ${S.slot || 'ASAP'}`,
+          image: '🍽️',
+          slot: S.slot,
+          items: detailedItems,
+          prefill: {
+            name: student.name || 'Kabir Ahuja',
+            email: 'kabir.ahuja@mastersunion.org',
+            contact: '+91 98765 43210'
+          },
+          handler: async function(paymentResponse) {
+            try {
+              const createdOrders = await api.checkout(cartItems, S.slot, {
+                paymentId: paymentResponse.razorpay_payment_id,
+                paymentMethod: paymentResponse.method
+              });
+              S.cart = {}; saveCart(S.cart);
+              await refreshAllData();
+              S.tab = "orders";
+              render();
+              toast(`🟢 Payment verified! Ref: ${paymentResponse.razorpay_payment_id}`);
+              tokenSheet(createdOrders);
+            } catch(err){
+              if (location.protocol === 'file:' || err.message.includes('Failed to fetch')) {
+                // In-memory fallback
+                const ids = Object.keys(S.cart).map(Number);
+                const byV = {};
+                ids.forEach(id => { (byV[item(id).v] ||= []).push(id); });
+                const localCreated = [];
+                Object.entries(byV).forEach(([vn, list]) => {
+                  const pre = list.some(id => item(id).stock === 0);
+                  const o = {
+                    id: "MU-" + (430 + ORDERS.length),
+                    v: vn,
+                    lines: list.map(id => ({ i: id, q: S.cart[id], p: item(id).p, n: item(id).n, e: item(id).e })),
+                    total: list.reduce((a, id) => a + item(id).p * S.cart[id], 0),
+                    status: pre ? "queued" : "placed",
+                    slot: S.slot,
+                    payment_id: paymentResponse.razorpay_payment_id,
+                    payment_method: paymentResponse.method,
+                    payment_status: 'paid',
+                    mine: true,
+                    who: getStudent().name,
+                    t: "just now"
+                  };
+                  list.forEach(id => { const it = item(id); if(it.stock > 0) it.stock = Math.max(0, it.stock - S.cart[id]); });
+                  ORDERS.push(o);
+                  localCreated.push(o);
+                });
+                S.cart = {};
+                S.tab = "orders";
+                render();
+                tokenSheet(localCreated);
+              } else {
+                toast(`⚠️ ${err.message}`);
+              }
+            }
+          },
+          modal: {
+            ondismiss: function() {
+              toast("Payment cancelled. Cart saved.");
+            }
+          }
+        });
+      } else {
+        // Fallback if script not loaded
+        try {
+          const createdOrders = await api.checkout(cartItems, S.slot);
+          S.cart = {}; saveCart(S.cart);
+          await refreshAllData();
           S.tab = "orders";
           render();
-          tokenSheet(localCreated);
-        } else {
+          tokenSheet(createdOrders);
+        } catch(err){
           toast(`⚠️ ${err.message}`);
         }
       }
@@ -4333,5 +4448,6 @@ render();
   render();
 })();
 </script>
+<script src="razorpay-sandbox.js"></script>
 </body>
 </html>

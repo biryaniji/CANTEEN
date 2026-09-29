@@ -49,7 +49,10 @@ function isSlotWithinOperationalHours(slot, openTime = '08:30', closeTime = '21:
   return slotMinutes >= openMinutes && slotMinutes <= closeMinutes;
 }
 
-async function checkoutCart({ studentId, studentName = 'Kabir Ahuja', cartItems, pickupSlot = 'ASAP' }) {
+async function checkoutCart({ studentId, studentName = 'Kabir Ahuja', cartItems, pickupSlot = 'ASAP', paymentId = null, paymentMethod = 'Razorpay Sandbox (UPI)', paymentStatus = 'paid' }) {
+  const finalPaymentId = paymentId || ('pay_sbx_' + Math.random().toString(36).substring(2, 12));
+  const finalPaymentMethod = paymentMethod || 'Razorpay Sandbox (UPI)';
+  const finalPaymentStatus = paymentStatus || 'paid';
   if (!cartItems || !cartItems.length) {
     throw new Error('Cart is empty');
   }

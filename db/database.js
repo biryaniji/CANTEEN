@@ -118,10 +118,18 @@ async function initSchema() {
       status TEXT NOT NULL CHECK(status IN ('queued','placed','preparing','ready','collected','cancelled')),
       pickup_slot TEXT NOT NULL,
       total_amount INTEGER NOT NULL,
+      payment_id TEXT,
+      payment_method TEXT,
+      payment_status TEXT DEFAULT 'paid',
       placed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       status_updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // Ensure payment columns exist on existing databases
+  try { await run(`ALTER TABLE orders ADD COLUMN payment_id TEXT`); } catch (_) {}
+  try { await run(`ALTER TABLE orders ADD COLUMN payment_method TEXT`); } catch (_) {}
+  try { await run(`ALTER TABLE orders ADD COLUMN payment_status TEXT DEFAULT 'paid'`); } catch (_) {}
 
   // order_items table
   await run(`
