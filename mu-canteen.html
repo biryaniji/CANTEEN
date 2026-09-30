@@ -52,9 +52,15 @@ input,select{font-family:inherit}
 
 /* ---------- stage / device ---------- */
 .wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;gap:14px;padding:18px 12px 22px}
+.top-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center}
 .modeswitch{display:flex;gap:4px;background:#121212;border:1px solid var(--line);border-radius:999px;padding:4px}
 .modeswitch button{padding:7px 16px;border-radius:999px;font-size:13px;font-weight:500;color:var(--muted);letter-spacing:.1px}
 .modeswitch button.on{background:var(--gold);color:#0A0A0A;font-weight:600}
+.device-switch{display:flex;gap:3px;background:#141414;border:1px solid var(--line);border-radius:999px;padding:4px}
+.dev-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:999px;font-size:12.5px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .18s ease;border:none;background:none}
+.dev-btn:hover{color:#fff}
+.dev-btn.on{background:#272418;color:var(--gold);border:1px solid #4A3B12;font-weight:600}
+.phone-island{display:none}
 .hint{font-size:11.5px;color:#777;letter-spacing:.2px;display:flex;align-items:center;gap:7px}
 .ws-dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;box-shadow:0 0 6px var(--green);transition:all .2s ease}
 .ws-dot.off{background:var(--red);box-shadow:none}
@@ -799,6 +805,336 @@ input,select{font-family:inherit}
   .grab{display:none}
 }
 
+/* ---------- Phone Simulator Mode (when toggled on desktop) ---------- */
+@media (min-width: 900px) {
+  body.view-phone-sim .wrap {
+    padding: 16px 12px 24px !important;
+    gap: 12px !important;
+    min-height: 100dvh !important;
+    height: 100dvh !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+  }
+
+  body.view-phone-sim .phone {
+    width: 390px !important;
+    max-width: calc(100vw - 32px) !important;
+    height: min(844px, calc(100dvh - 100px)) !important;
+    aspect-ratio: 390 / 844 !important;
+    border-radius: 46px !important;
+    border: 9px solid #1c1c1e !important;
+    outline: 1px solid #363636 !important;
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.08), inset 0 0 3px rgba(255,255,255,0.15) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: none !important;
+    grid-template-rows: none !important;
+    grid-template-areas: none !important;
+    position: relative !important;
+    overflow: hidden !important;
+    margin: 0 auto !important;
+    background: var(--bg) !important;
+  }
+
+  body.view-phone-sim .phone-island {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: absolute !important;
+    top: 9px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: 88px !important;
+    height: 22px !important;
+    background: #000 !important;
+    border-radius: 20px !important;
+    z-index: 100 !important;
+    pointer-events: none !important;
+    box-shadow: 0 0 1px 1px #222 !important;
+  }
+
+  body.view-phone-sim .phone-island::after {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #091a28;
+    border: 1px solid #1a2a38;
+    margin-left: 48px;
+  }
+
+  body.view-phone-sim .statusbar {
+    display: flex !important;
+    justify-content: space-between !important;
+    padding: 11px 18px 2px !important;
+    font-size: 12px !important;
+    color: #b0b0b0 !important;
+    font-weight: 500 !important;
+  }
+
+  body.view-phone-sim #head {
+    grid-area: unset !important;
+    border-bottom: none !important;
+  }
+
+  body.view-phone-sim .brandside {
+    display: none !important;
+  }
+
+  body.view-phone-sim .topbar {
+    padding: 6px 14px 10px !important;
+    gap: 10px !important;
+    display: flex !important;
+  }
+
+  body.view-phone-sim .avatar {
+    width: 38px !important;
+    height: 38px !important;
+    font-size: 13px !important;
+  }
+
+  body.view-phone-sim .iconbtn {
+    width: 38px !important;
+    height: 38px !important;
+  }
+
+  body.view-phone-sim .greet h1 {
+    font-size: 16px !important;
+  }
+
+  body.view-phone-sim .greet p {
+    font-size: 11.5px !important;
+  }
+
+  body.view-phone-sim .screen {
+    grid-area: unset !important;
+    padding: 0 12px 96px !important;
+    overflow-y: auto !important;
+    flex: 1 !important;
+  }
+
+  body.view-phone-sim .rail {
+    padding: 2px 12px !important;
+    margin: 0 -12px !important;
+    gap: 6px !important;
+  }
+
+  body.view-phone-sim .pill {
+    padding: 7px 14px !important;
+    font-size: 12.5px !important;
+  }
+
+  body.view-phone-sim .itemgrid {
+    display: block !important;
+  }
+
+  body.view-phone-sim .item {
+    display: flex !important;
+    min-height: auto !important;
+    padding: 10px 11px !important;
+    gap: 11px !important;
+    border-radius: 18px !important;
+    margin-bottom: 11px !important;
+    align-items: center !important;
+  }
+
+  body.view-phone-sim .item .thumb {
+    width: 82px !important;
+    height: 82px !important;
+    border-radius: 14px !important;
+    flex: none !important;
+  }
+
+  body.view-phone-sim .item .body {
+    flex: 1 !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+  }
+
+  body.view-phone-sim .item .name {
+    font-size: 14.5px !important;
+    font-weight: 600 !important;
+    line-height: 1.25 !important;
+    gap: 5px !important;
+    word-break: break-word !important;
+  }
+
+  body.view-phone-sim .item .meta {
+    font-size: 11px !important;
+    margin-top: 3px !important;
+    gap: 5px !important;
+  }
+
+  body.view-phone-sim .item .meta.vendor-meta {
+    font-size: 11px !important;
+    margin-top: 3px !important;
+    gap: 4px !important;
+  }
+
+  body.view-phone-sim .availability {
+    font-size: 11px !important;
+    margin-top: 4px !important;
+    gap: 5px !important;
+  }
+
+  body.view-phone-sim .item .right {
+    min-width: 82px !important;
+    gap: 8px !important;
+    align-items: flex-end !important;
+    flex: none !important;
+  }
+
+  body.view-phone-sim .item .price {
+    font-size: 16px !important;
+    font-weight: 700 !important;
+  }
+
+  body.view-phone-sim .item .btn.gold.sm,
+  body.view-phone-sim .item .btn.outline.sm,
+  body.view-phone-sim .item .btn.ghost.sm {
+    min-width: 82px !important;
+    height: 38px !important;
+    padding: 0 10px !important;
+    font-size: 13.5px !important;
+    border-radius: 999px !important;
+  }
+
+  body.view-phone-sim .item .qty {
+    height: 38px !important;
+    min-width: 82px !important;
+    border-radius: 999px !important;
+  }
+
+  body.view-phone-sim .item .qty button {
+    width: 27px !important;
+    height: 38px !important;
+    font-size: 17px !important;
+  }
+
+  body.view-phone-sim .item .qty span {
+    min-width: 26px !important;
+    font-size: 13.5px !important;
+  }
+
+  body.view-phone-sim .vendorlist {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 11px !important;
+  }
+
+  body.view-phone-sim .vendorcard {
+    padding: 10px !important;
+    gap: 10px !important;
+    border-radius: 16px !important;
+    margin-bottom: 0 !important;
+  }
+
+  body.view-phone-sim .vc-img {
+    width: 70px !important;
+    height: 70px !important;
+    border-radius: 12px !important;
+  }
+
+  body.view-phone-sim .vc-name { font-size: 15px !important; }
+  body.view-phone-sim .vc-cuisine { font-size: 11.5px !important; }
+  body.view-phone-sim .vc-foot { font-size: 11.5px !important; margin-top: 4px !important; }
+
+  body.view-phone-sim .nav {
+    position: absolute !important;
+    grid-area: unset !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: calc(100% - 20px) !important;
+    bottom: 8px !important;
+    border-radius: 20px !important;
+    padding: 8px 4px !important;
+    flex-direction: row !important;
+    justify-content: space-around !important;
+    align-items: center !important;
+    background: #1A1A1A !important;
+    border: 1px solid #262626 !important;
+    backdrop-filter: blur(10px) !important;
+    gap: 2px !important;
+  }
+
+  body.view-phone-sim .nav button {
+    flex: 1 !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 3px !important;
+    padding: 2px !important;
+    border-radius: 0 !important;
+    background: none !important;
+  }
+
+  body.view-phone-sim .nav button svg {
+    width: 19px !important;
+    height: 19px !important;
+  }
+
+  body.view-phone-sim .nav button span {
+    font-size: 9.5px !important;
+    letter-spacing: -0.2px !important;
+  }
+
+  body.view-phone-sim .nav button.on {
+    color: var(--gold) !important;
+    background: none !important;
+  }
+
+  body.view-phone-sim .fab {
+    left: 10px !important;
+    right: 10px !important;
+    bottom: 64px !important;
+    min-height: 52px !important;
+    padding: 6px 8px 6px 14px !important;
+    border-radius: 22px !important;
+    font-size: 13.5px !important;
+    position: absolute !important;
+    width: auto !important;
+  }
+
+  body.view-phone-sim .fab .cart-left {
+    gap: 8px !important;
+    font-size: 14px !important;
+  }
+
+  body.view-phone-sim .fab .fab-cta {
+    padding: 9px 16px !important;
+    font-size: 13px !important;
+    gap: 6px !important;
+  }
+
+  body.view-phone-sim .fab .fab-cta b {
+    font-size: 15px !important;
+  }
+
+  body.view-phone-sim .sheet {
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    top: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 92% !important;
+    border-radius: 22px 22px 0 0 !important;
+    transform: translateY(102%) !important;
+    padding: 8px 14px 24px !important;
+    transition: transform .26s cubic-bezier(.3,.9,.3,1) !important;
+    opacity: 1 !important;
+  }
+
+  body.view-phone-sim .sheet.on {
+    transform: translateY(0) !important;
+  }
+
+  body.view-phone-sim .grab {
+    display: block !important;
+  }
+}
+
 @media print {
   body { background: #fff !important; color: #000 !important; }
   .wrap, .phone { max-width: 100% !important; height: auto !important; border: none !important; box-shadow: none !important; }
@@ -814,9 +1150,21 @@ input,select{font-family:inherit}
 </head>
 <body>
 <div class="wrap">
-  <div class="modeswitch" role="tablist" aria-label="Prototype view">
-    <button data-act="mode" data-v="student" class="on" id="m-student">Student app</button>
-    <button data-act="mode" data-v="admin" id="m-admin">Vendor console</button>
+  <div class="top-controls">
+    <div class="modeswitch" role="tablist" aria-label="Prototype view">
+      <button data-act="mode" data-v="student" class="on" id="m-student">Student app</button>
+      <button data-act="mode" data-v="admin" id="m-admin">Vendor console</button>
+    </div>
+    <div class="device-switch" role="tablist" aria-label="Device Format">
+      <button data-act="device" data-v="desktop" class="dev-btn on" id="dev-pc" title="Laptop / PC View">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        <span>Laptop</span>
+      </button>
+      <button data-act="device" data-v="phone" class="dev-btn" id="dev-phone" title="Phone Format (Aspect Ratio Perfect)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="3"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+        <span>Phone</span>
+      </button>
+    </div>
   </div>
   <div class="hint">
     <span class="ws-dot off" id="wsdot"></span>
@@ -824,6 +1172,7 @@ input,select{font-family:inherit}
   </div>
 
   <div class="phone">
+    <div class="phone-island"></div>
     <div class="statusbar">
       <span id="clock">17:04</span>
       <span class="right"><span>4G</span><span>▮▮▮</span><span style="color:var(--gold)">⚡</span></span>
@@ -3796,6 +4145,10 @@ document.addEventListener("click", async e => {
       render();
       break;
 
+    case "device":
+      setDeviceFormat(v);
+      break;
+
     case "tab":
       S.tab=v;
       localStorage.setItem('mu_tab', v);
@@ -4853,7 +5206,29 @@ function tick(){
   const gw = $("#greet-word");
   if(gw) gw.textContent = getGreeting();
 }
-tick(); setInterval(tick,20000);
+/* device format simulator */
+function setDeviceFormat(dev){
+  const isPhone = (dev === 'phone');
+  document.body.classList.toggle('view-phone-sim', isPhone);
+  try { localStorage.setItem('mu_device_format', dev); } catch(e){}
+  const pcBtn = document.getElementById('dev-pc');
+  const phoneBtn = document.getElementById('dev-phone');
+  if(pcBtn) pcBtn.classList.toggle('on', !isPhone);
+  if(phoneBtn) phoneBtn.classList.toggle('on', isPhone);
+  closeSheet();
+  render();
+}
+
+try {
+  const savedDev = localStorage.getItem('mu_device_format') || 'desktop';
+  if(savedDev === 'phone'){
+    document.body.classList.add('view-phone-sim');
+    const pcBtn = document.getElementById('dev-pc');
+    const phoneBtn = document.getElementById('dev-phone');
+    if(pcBtn) pcBtn.classList.remove('on');
+    if(phoneBtn) phoneBtn.classList.add('on');
+  }
+} catch(e){}
 
 // Initialize app
 // Initial immediate render so the screen is never blank
