@@ -65,10 +65,413 @@ input,select{font-family:inherit}
   display:flex;flex-direction:column;box-shadow:0 30px 80px rgba(0,0,0,.6);
 }
 @media (max-width:520px){
-  .wrap{padding:0;gap:0}
-  .modeswitch{border-radius:0;border-left:none;border-right:none;border-top:none;width:100%;justify-content:center;padding:6px 4px}
-  .hint{display:none}
-  .phone{max-width:none;height:100%;max-height:none;border:none;border-radius:0;box-shadow:none;flex:1}
+  html, body {
+    height: 100%;
+    width: 100%;
+    overflow-x: hidden;
+  }
+  .wrap {
+    padding: 0 !important;
+    gap: 0 !important;
+    height: 100dvh;
+    min-height: 100dvh;
+    max-height: 100dvh;
+    width: 100%;
+    overflow: hidden;
+  }
+  .modeswitch {
+    flex: none;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    border-bottom: 1px solid var(--line);
+    width: 100%;
+    justify-content: center;
+    padding: 6px 4px;
+    background: #111;
+    z-index: 10;
+  }
+  .modeswitch button {
+    padding: 6px 14px;
+    font-size: 12px;
+  }
+  .hint { display: none !important; }
+  .phone {
+    max-width: none !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-height: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    flex: 1;
+    min-height: 0;
+  }
+  .statusbar { display: none !important; }
+  .topbar {
+    padding: calc(6px + env(safe-area-inset-top, 0px)) 14px 10px;
+    gap: 10px;
+  }
+  .avatar { width: 38px; height: 38px; font-size: 13px; }
+  .iconbtn { width: 38px; height: 38px; }
+  .greet h1 { font-size: 16px; }
+  .greet p { font-size: 11.5px; }
+
+  .screen {
+    padding: 0 12px calc(92px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Food Item Mobile Layout */
+  .item {
+    min-height: auto;
+    padding: 10px 11px;
+    gap: 11px;
+    border-radius: 18px;
+    margin-bottom: 11px;
+    align-items: center;
+  }
+  .item .thumb {
+    width: 82px;
+    height: 82px;
+    border-radius: 14px;
+    flex: none;
+  }
+  .item .body {
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+  }
+  .item .name {
+    font-size: 14.5px;
+    font-weight: 600;
+    line-height: 1.25;
+    gap: 5px;
+    word-break: break-word;
+  }
+  .veg {
+    width: 11px;
+    height: 11px;
+  }
+  .veg::after {
+    width: 4px;
+    height: 4px;
+  }
+  .item .meta {
+    font-size: 11px;
+    margin-top: 3px;
+    gap: 5px;
+  }
+  .item .meta.vendor-meta {
+    font-size: 11px;
+    margin-top: 3px;
+    gap: 4px;
+  }
+  .availability {
+    font-size: 11px;
+    margin-top: 4px;
+    gap: 5px;
+  }
+  .availability-dot {
+    width: 7px;
+    height: 7px;
+  }
+  .tag {
+    padding: 3px 7px;
+    font-size: 10px;
+    gap: 4px;
+  }
+
+  .item .right {
+    min-width: 82px;
+    gap: 8px;
+    align-items: flex-end;
+    flex: none;
+  }
+  .item .price {
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .item .btn.gold.sm,
+  .item .btn.outline.sm,
+  .item .btn.ghost.sm {
+    min-width: 82px;
+    height: 38px;
+    padding: 0 10px;
+    font-size: 13.5px;
+    border-radius: 999px;
+  }
+  .item .qty {
+    height: 38px;
+    min-width: 82px;
+    border-radius: 999px;
+  }
+  .item .qty button {
+    width: 27px;
+    height: 38px;
+    font-size: 17px;
+  }
+  .item .qty span {
+    min-width: 26px;
+    font-size: 13.5px;
+  }
+
+  /* Vendor list on phone */
+  .vendorcard {
+    padding: 10px;
+    gap: 10px;
+    border-radius: 16px;
+  }
+  .vc-img {
+    width: 70px;
+    height: 70px;
+    border-radius: 12px;
+  }
+  .vc-name { font-size: 15px; }
+  .vc-cuisine { font-size: 11.5px; }
+  .vc-foot { font-size: 11.5px; margin-top: 4px; }
+
+  /* Rails & Pills */
+  .rail {
+    padding: 2px 12px;
+    margin: 0 -12px;
+    gap: 6px;
+  }
+  .pill {
+    padding: 7px 14px;
+    font-size: 12.5px;
+  }
+
+  /* Bottom Nav */
+  .nav {
+    width: calc(100% - 20px);
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    padding: 8px 4px;
+    border-radius: 20px;
+    gap: 2px;
+  }
+  .nav button {
+    padding: 2px;
+    gap: 3px;
+  }
+  .nav button svg {
+    width: 19px;
+    height: 19px;
+  }
+  .nav button span {
+    font-size: 9.5px;
+    letter-spacing: -0.2px;
+  }
+
+  /* Floating Action Button (Cart) */
+  .fab {
+    left: 10px;
+    right: 10px;
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    min-height: 52px;
+    padding: 6px 8px 6px 14px;
+    border-radius: 22px;
+    font-size: 13.5px;
+  }
+  .fab .cart-left {
+    gap: 8px;
+    font-size: 14px;
+  }
+  .fab .fab-cta {
+    padding: 9px 16px;
+    font-size: 13px;
+    gap: 6px;
+  }
+  .fab .fab-cta b {
+    font-size: 15px;
+  }
+
+  /* Sheet */
+  .sheet {
+    padding: 8px 14px calc(24px + env(safe-area-inset-bottom, 0px));
+    border-radius: 22px 22px 0 0;
+    max-height: 92%;
+  }
+  .sheet h3 { font-size: 17px; }
+
+  /* Admin / Vendor Console Mobile */
+  .grid2 { gap: 8px; }
+  .stat { padding: 10px 12px; }
+  .stat .v { font-size: 20px; }
+  .stat .k { font-size: 11px; }
+  .field input, .field select, .field textarea {
+    font-size: 14px;
+    padding: 10px 12px;
+  }
+  .seg button {
+    padding: 9px 6px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 375px) {
+  .topbar { padding: calc(4px + env(safe-area-inset-top, 0px)) 10px 8px; }
+  .screen { padding: 0 10px calc(88px + env(safe-area-inset-bottom, 0px)); }
+  .item {
+    gap: 8px;
+    padding: 8px 9px;
+  }
+  .item .thumb {
+    width: 68px;
+    height: 68px;
+    border-radius: 11px;
+  }
+  .item .name { font-size: 13.5px; }
+  .item .right { min-width: 72px; gap: 6px; }
+  .item .price { font-size: 14.5px; }
+  .item .btn.gold.sm,
+  .item .btn.outline.sm,
+  .item .btn.ghost.sm {
+    min-width: 72px;
+    height: 35px;
+    font-size: 12px;
+    padding: 0 8px;
+  }
+  .item .qty {
+    height: 35px;
+    min-width: 72px;
+  }
+  .item .qty button {
+    width: 23px;
+    height: 35px;
+    font-size: 15px;
+  }
+  .item .qty span {
+    min-width: 22px;
+    font-size: 12px;
+  }
+  .nav button span {
+    font-size: 8.5px;
+  }
+  .fab .cart-left { font-size: 13px; }
+  .fab .fab-cta { padding: 8px 12px; font-size: 12px; }
+}
+
+@media (min-width: 521px) and (max-width: 899px) {
+  body {
+    background: #090909;
+  }
+  .wrap {
+    padding: 16px;
+    min-height: 100dvh;
+    height: 100dvh;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    overflow: hidden;
+  }
+  .modeswitch {
+    flex: none;
+  }
+  .phone {
+    max-width: 760px;
+    width: 100%;
+    height: calc(100dvh - 36px);
+    max-height: 1000px;
+    border-radius: 24px;
+    border: 1px solid #222;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .statusbar { display: none !important; }
+  .topbar {
+    padding: 12px 24px 14px;
+  }
+  .screen {
+    padding: 0 24px 110px;
+  }
+  
+  /* 2-Column Grid on Tablets for items & vendors */
+  .itemgrid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+  }
+  .itemgrid .item {
+    margin-bottom: 0;
+    min-height: 124px;
+    padding: 11px;
+    gap: 12px;
+  }
+  .item .thumb {
+    width: 88px;
+    height: 88px;
+    border-radius: 14px;
+  }
+  .item .name { font-size: 15px; }
+  .item .price { font-size: 16.5px; }
+  .item .right { min-width: 88px; }
+  .item .btn.gold.sm,
+  .item .btn.outline.sm,
+  .item .btn.ghost.sm {
+    min-width: 88px;
+    height: 40px;
+    font-size: 14px;
+  }
+  .item .qty {
+    min-width: 88px;
+    height: 40px;
+  }
+
+  .vendorlist {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+  }
+  .vendorcard {
+    margin-bottom: 0;
+  }
+
+  .cardgrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .nav {
+    max-width: 540px;
+    width: calc(100% - 48px);
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    padding: 10px 14px;
+  }
+  .nav button {
+    font-size: 11px;
+    gap: 4px;
+  }
+  .nav button svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .fab {
+    max-width: 540px;
+    left: 50%;
+    transform: translateX(-50%);
+    right: auto;
+    width: calc(100% - 48px);
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .sheet {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%) translateY(102%);
+    width: 540px;
+    max-width: calc(100% - 32px);
+    border-radius: 24px 24px 0 0;
+  }
+  .sheet.on {
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
 /* ---------- app chrome ---------- */

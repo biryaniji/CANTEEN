@@ -961,13 +961,21 @@
 
 /* Responsive adjustments */
 @media (max-width: 680px) {
+  .rzp-backdrop {
+    padding: 0;
+    align-items: flex-end;
+  }
   .rzp-modal {
-    height: 100vh;
-    max-height: 100vh;
-    border-radius: 0;
+    width: 100%;
+    max-width: 100%;
+    height: 94vh;
+    max-height: 94vh;
+    border-radius: 22px 22px 0 0;
+    margin-bottom: 0;
   }
   .rzp-body {
     flex-direction: column;
+    overflow-y: auto;
   }
   .rzp-sidebar {
     width: 100%;
@@ -977,6 +985,7 @@
     flex-direction: row;
     overflow-x: auto;
     padding: 6px;
+    flex-shrink: 0;
   }
   .rzp-nav-group-title {
     display: none;
@@ -986,9 +995,14 @@
     border-radius: 8px;
     white-space: nowrap;
     width: auto;
+    font-size: 13px;
   }
   .rzp-nav-item.active::before {
     display: none;
+  }
+  .rzp-content-pane {
+    padding: 16px;
+    overflow-y: visible;
   }
   .rzp-banks-grid {
     grid-template-columns: repeat(2, 1fr);
